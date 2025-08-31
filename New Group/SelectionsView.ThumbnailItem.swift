@@ -4,59 +4,57 @@
 import SwiftUI
 extension SelectionsView {
 @ViewBuilder func thumbnailItem(_ item: ProjectImage) -> some View {
-        ZStack {
-            if draggingID == item.id && !isShiftPressed {
-                // Show placeholder when dragging for reorder
-                Color(nsColor: .windowBackgroundColor)
-                    .aspectRatio(model.project.aspect.aspect, contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .shadow(radius: 1)
-            } else {
-                ZStack {
-                    // Base thumbnail image with background color support
-                    // In your thumbnailItem function, replace the ThumbView call with:
-                    ThumbView(
-                        url: item.url,
+    let isReelAspect = model.project.aspect == .story9x16
+    let bgColor = isReelAspect ? model.project.reelBorderColor.swiftUIColor : model.project.carouselBorderColor.swiftUIColor
+    let borderPx = isReelAspect ? Double(model.project.reelBorderPx) : Double(model.project.carouselBorderPx)
+    ZStack {
+        if draggingID == item.id && !isShiftPressed {
+            // Show placeholder when dragging for reorder
+            bgColor
+                .aspectRatio(model.project.aspect.aspect, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .shadow(radius: 1)
+        } else {
+            ZStack {
+                // Base thumbnail image with background color support
+                ThumbView(
+                    url: item.url,
+                    aspect: model.project.aspect.aspect,
+                    offsetX: item.offsetX,
+                    offsetY: item.offsetY,
+                    zoomToFill: model.project.zoomToFill,
+                    backgroundColor: bgColor,
+                    borderWidth: borderPx
+                )
+                // Reposition overlay and gesture handling
+                if isShiftPressed {
+                    RepositionOverlayView(
+                        item: item,
+                        model: model,
                         aspect: model.project.aspect.aspect,
-                        offsetX: item.offsetX,
-                        offsetY: item.offsetY,
                         zoomToFill: model.project.zoomToFill,
-                        backgroundColor: backgroundColor,
-                        borderWidth: borderWidth // NEW: Pass border width
-                    )
-                    
-                    // Reposition overlay and gesture handling
-                    if isShiftPressed {
-                        RepositionOverlayView(
-                            item: item,
-                            model: model,
-                            aspect: model.project.aspect.aspect,
-                            zoomToFill: model.project.zoomToFill,
-                            isHovered: hoveredItemID == item.id,
-                            onHoverChange: { isHovering in
-                                hoveredItemID = isHovering ? item.id : nil
-                            }
-                        )
-                    }
-
-                    // Disabled overlay
-                    if item.disabled {
-                        ZStack {
-                            Rectangle()
-                                .fill(Color.black.opacity(disabledOverlayOpacity))
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .allowsHitTesting(false)
-                            
-                            // Eye slash icon
-                            Image(systemName: "eye.slash")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(.white.opacity(0.8))
-                                .allowsHitTesting(false)
+                        isHovered: hoveredItemID == item.id,
+                        onHoverChange: { isHovering in
+                            hoveredItemID = isHovering ? item.id : nil
                         }
+                    )
+                }
+                // Disabled overlay
+                if item.disabled {
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.black.opacity(disabledOverlayOpacity))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .allowsHitTesting(false)
+                        Image(systemName: "eye.slash")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                            .allowsHitTesting(false)
                     }
                 }
             }
         }
+    }
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
