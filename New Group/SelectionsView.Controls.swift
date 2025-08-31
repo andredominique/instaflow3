@@ -54,11 +54,24 @@ var controls: some View {
                 
                 // Quick color buttons and custom picker with REDUCED SIZE
                 HStack(spacing: 2) {
-                    ForEach(ColorOption.allCases.filter { $0 != .custom }, id: \.self) { option in
+                    ForEach(ColorOption.allCases.filter { $0 != .custom }, id: \ .self) { option in
                         Button {
                             if selectedColorOption != option || backgroundColor != option.color {
                                 selectedColorOption = option
                                 backgroundColor = option.color
+                                // Sync to global project color
+                                let ns = NSColor(option.color)
+                                let colorData = ColorData(
+                                    red: Double(ns.redComponent),
+                                    green: Double(ns.greenComponent),
+                                    blue: Double(ns.blueComponent),
+                                    opacity: 1
+                                )
+                                if model.project.aspect == .story9x16 {
+                                    model.project.reelBorderColor = colorData
+                                } else {
+                                    model.project.carouselBorderColor = colorData
+                                }
                             }
                         } label: {
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -117,7 +130,15 @@ var controls: some View {
                 Slider(
                     value: $borderWidth,
                     in: 0...20,
-                    step: 1
+                    step: 1,
+                    onEditingChanged: { _ in
+                        // Sync to global project border width
+                        if model.project.aspect == .story9x16 {
+                            model.project.reelBorderPx = Int(borderWidth)
+                        } else {
+                            model.project.carouselBorderPx = Int(borderWidth)
+                        }
+                    }
                 )
                 .frame(width: 80)
                 .help("Add border around images")
