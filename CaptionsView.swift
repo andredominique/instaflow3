@@ -155,7 +155,9 @@ struct CaptionsView: View {
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
         }
-    .frame(width: 120)
+    // Restored sidebar width (previously reduced for smaller window)
+    // To allow smaller resizing again, set width: 120
+    .frame(width: 320)
         .padding(8)
         .background(Color.gray.opacity(0.06))
     }
