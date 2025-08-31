@@ -49,7 +49,7 @@ struct FinalPreviewView: View {
 
                 // Top title
                 HStack {
-                    Text("Settings").font(.title3).bold()
+                    Text("Slideshow Pace").font(.title3).bold()
                     Spacer()
                 }
                 .padding(.top, 6)
@@ -59,7 +59,6 @@ struct FinalPreviewView: View {
                     // Reel settings (Tap Tempo embedded)
                     GroupBox {
                         VStack(alignment: .leading, spacing: 10) {
-                            HStack { Text("Reel Settings").font(.headline); Spacer() }
                             // Tap Tempo (writes to model.project.reelSecondsPerImage)
                             TapTempoControl(embedded: true, hideHeader: true, showReset: false)
                                 .environmentObject(model)
