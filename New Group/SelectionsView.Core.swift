@@ -30,6 +30,22 @@ struct SelectionsView: View {
     
     // NEW: Background color for when zoom to fill is disabled
     @State var backgroundColor = Color.black // Changed default to black
+
+    // Helper to sync backgroundColor to global project color
+    private func syncBackgroundColorToProject() {
+        let ns = NSColor(backgroundColor)
+        let colorData = ColorData(
+            red: Double(ns.redComponent),
+            green: Double(ns.greenComponent),
+            blue: Double(ns.blueComponent),
+            opacity: 1
+        )
+        if model.project.aspect == .story9x16 {
+            model.project.reelBorderColor = colorData
+        } else {
+            model.project.carouselBorderColor = colorData
+        }
+    }
     @State var selectedColorOption: ColorOption = .black // Track which option is selected
     
     // SIMPLIFIED: Direct reposition sheet state
@@ -418,6 +434,7 @@ struct SelectionsView: View {
         ) { _ in
             backgroundColor = Color(nsColor: colorPanel.color)
             selectedColorOption = .custom
+            syncBackgroundColorToProject()
         }
     }
 }
