@@ -377,12 +377,6 @@ struct FinalPreviewView: View {
                     )
                     exportedURLs.append(contentsOf: urls)
 
-                    if model.project.saveCaptionTxt {
-                        let captionURL = imageOut.appendingPathComponent("caption.txt")
-                        let text = model.project.caption
-                        try text.data(using: .utf8)?.write(to: captionURL, options: .atomic)
-                    }
-
                     step += 1
                     await MainActor.run { progress = Double(step) / Double(max(totalSteps, 1)) }
                 }
@@ -416,6 +410,13 @@ struct FinalPreviewView: View {
 
                     step += 1
                     await MainActor.run { progress = Double(step) / Double(max(totalSteps, 1)) }
+                }
+
+                // Write caption.txt if requested and caption is not empty
+                if model.project.saveCaptionTxt && !model.project.caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    let captionURL = outDir.appendingPathComponent("caption.txt")
+                    let text = model.project.caption
+                    try? text.data(using: .utf8)?.write(to: captionURL, options: .atomic)
                 }
             } else {
                 // Export original images (no cropping)
