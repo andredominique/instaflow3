@@ -50,7 +50,7 @@ struct RightPreviewPane: View {
         VStack(spacing: 0) {
                 // NEW: Header matching RootView height
                 header
-                    .background(Color(nsColor: .windowBackgroundColor)) // Always neutral, not affected by background color setting
+                    .background(Color.adaptiveBackground) // Matches RootView header color
             
             Divider()
                 .background(Color.adaptiveLine)
