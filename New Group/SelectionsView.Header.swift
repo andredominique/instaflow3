@@ -5,7 +5,7 @@ import SwiftUI
 extension SelectionsView {
 var header: some View {
         HStack(spacing: 12) {
-            Text("Cull & Reorder Images:")
+            Text("Cull & Reorder:")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
             
@@ -121,6 +121,7 @@ var header: some View {
                 }
                 .buttonStyle(BorderedButtonStyle())
                 .padding(.vertical, 4)
+                .layoutPriority(1)
 
                 Button {
                     showResetConfirm = true
@@ -129,6 +130,7 @@ var header: some View {
                 }
                 .buttonStyle(BorderedButtonStyle())
                 .padding(.vertical, 4)
+                .layoutPriority(1)
                 
             }
         }
