@@ -8,6 +8,7 @@ var controls: some View {
             Text("Style Images:")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
+                .frame(minWidth: 100) // Ensures 'Style Images:' text stays intact when resizing
             
             Spacer()
             
@@ -227,7 +228,8 @@ var controls: some View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+    .padding(.leading, 12)
+    .padding(.trailing, 4) // Reduced right padding
+    .padding(.vertical, 10)
     }
 }
