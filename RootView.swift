@@ -138,18 +138,24 @@ struct RootView: View {
             
             // Footer content with no top padding
             HStack {
-                Button {
-                    model.currentStep = max(1, model.currentStep - 1)
-                } label: {
-                    Label("Back", systemImage: "chevron.left")
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(DriveTheme.buttonBlue)
-                        .cornerRadius(6)
+                // Only show back button if we're not on step 1 (FolderPickerView)
+                if model.currentStep > 1 {
+                    Button {
+                        model.currentStep = max(1, model.currentStep - 1)
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(DriveTheme.buttonBlue)
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .keyboardShortcut(.leftArrow, modifiers: [])
+                } else {
+                    // Add an empty view with the same width to maintain layout
+                    Color.clear.frame(width: 80, height: 0)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .keyboardShortcut(.leftArrow, modifiers: [])
 
                 Spacer()
 
