@@ -157,18 +157,7 @@ struct RootView: View {
 
                 Spacer()
 
-                Button {
-                    model.currentStep = min(4, model.currentStep + 1)
-                } label: {
-                    Label("Next", systemImage: "chevron.right")
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(DriveTheme.buttonBlue)
-                        .cornerRadius(6)
-                }
-                .buttonStyle(PlainButtonStyle())
-                .keyboardShortcut(.rightArrow, modifiers: [])
+                // Next button removed as requested
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
