@@ -18,14 +18,7 @@ struct RightPreviewPane: View {
     // Slideshow controls - Changed default to true
     @State private var isPlaying = true
     @State private var slideshowSpeed: Double = 1.0
-    // Listen for Tap Tempo changes
-    init() {
-        NotificationCenter.default.addObserver(forName: Notification.Name("TapTempoChanged"), object: nil, queue: .main) { notification in
-            if let newSpeed = notification.object as? Double {
-                self.slideshowSpeed = newSpeed
-            }
-        }
-    }
+    // Remove observer from init, will add in .onAppear
     @State private var slideshowTimer: Timer?
     
     // Screen Mode state - Added for appearance toggle
@@ -236,6 +229,13 @@ struct RightPreviewPane: View {
             }
             // Apply current appearance
             applyAppearance()
+
+            // Listen for Tap Tempo changes and update slideshowSpeed
+            NotificationCenter.default.addObserver(forName: Notification.Name("TapTempoChanged"), object: nil, queue: .main) { notification in
+                if let newSpeed = notification.object as? Double {
+                    slideshowSpeed = newSpeed
+                }
+            }
         }
         .onChange(of: imagesSignature) { _, _ in
             clampIndex()
