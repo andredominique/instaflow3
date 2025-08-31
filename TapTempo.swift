@@ -136,7 +136,7 @@ struct TapTempoControl: View {
                         .font(.body)
                     // Lower min to 0.1 and finer steps
                     Slider(value: $model.project.reelSecondsPerImage, in: 0.1...4.0, step: 0.05, onEditingChanged: { _ in })
-                        .frame(width: 180)
+                        .frame(maxWidth: .infinity)
                         .onChange(of: model.project.reelSecondsPerImage) { _, newVal in
                             model.project.aspect = .story9x16
                             // Notify RightPreviewPane to update slideshow speed immediately on slide
