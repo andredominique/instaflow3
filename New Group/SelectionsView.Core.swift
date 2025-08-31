@@ -29,7 +29,7 @@ struct SelectionsView: View {
     @State var showResetConfirm = false
     
     // NEW: Background color for when zoom to fill is disabled
-    @State var backgroundColor = Color.black // Changed default to black
+    @State var backgroundColor = Color.black // Default background color is black
 
     // Helper to sync backgroundColor to global project color
     private func syncBackgroundColorToProject() {

@@ -369,7 +369,7 @@ private struct AspectContent: View {
                                     .clipped()
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .stroke(borderColor, lineWidth: CGFloat(borderPx))
+                                            .stroke(borderColor, lineWidth: CGFloat(borderPx) * 1.2)
                                     )
                             }
                             .frame(width: innerW, height: innerH)
@@ -381,7 +381,7 @@ private struct AspectContent: View {
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(borderColor, lineWidth: CGFloat(borderPx))
+                                        .stroke(borderColor, lineWidth: CGFloat(borderPx) * 1.2)
                                 )
                         }
                     } else if item != nil {
