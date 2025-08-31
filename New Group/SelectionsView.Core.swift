@@ -360,21 +360,29 @@ struct SelectionsView: View {
 
 
     private func resetToOriginalOrder() {
-        guard !originalOrderIDs.isEmpty else { return }
-        var byID: [UUID: ProjectImage] = [:]
-        for img in model.project.images { byID[img.id] = img }
-        var rebuilt: [ProjectImage] = []
-        rebuilt.reserveCapacity(originalOrderIDs.count)
-        for (i, id) in originalOrderIDs.enumerated() {
-            if var it = byID[id] {
-                it.disabled = false
-                it.orderIndex = i
-                it.offsetX = 0.0
-                it.offsetY = 0.0
-                rebuilt.append(it)
-            }
+        // Re-sort all images by filename to restore original order
+        var allImages = model.project.images
+        allImages.sort { $0.url.lastPathComponent.localizedCaseInsensitiveCompare($1.url.lastPathComponent) == .orderedAscending }
+        
+        // Re-enable all images and reset their order and position
+        for i in allImages.indices {
+            var img = allImages[i]
+            img.disabled = false  // Re-enable the image
+            img.orderIndex = i    // Reset the order
+            img.offsetX = 0.0     // Reset position
+            img.offsetY = 0.0
+            allImages[i] = img
         }
-        model.project.images = rebuilt
+        
+        // Reset custom order flag since we're back to original order
+        model.project.hasCustomOrder = false
+        
+        // Update the model with reset images
+        model.project.images = allImages
+        
+        // Clear original order IDs since we're back to default
+        originalOrderIDs = []
+        haveCapturedOriginal = false
     }
 
  
