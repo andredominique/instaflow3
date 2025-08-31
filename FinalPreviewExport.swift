@@ -19,21 +19,21 @@ struct FinalPreviewExport {
         bgColor.setFill()
         NSBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
 
-        // Inset the canvas by border width first
-        let canvasRect = CGRect(origin: .zero, size: size).insetBy(dx: CGFloat(borderWidth), dy: CGFloat(borderWidth))
-        // Fit aspect ratio inside the inset canvas
+        // Inset the canvas by border width for the image
+        let imageInset = CGFloat(borderWidth)
         let imageRect = AVMakeRect(
             aspectRatio: NSSize(width: aspect, height: 1.0),
-            insideRect: canvasRect
+            insideRect: CGRect(origin: .zero, size: size).insetBy(dx: imageInset, dy: imageInset)
         )
         // Draw the photo
         if let nsImg = imageProvider(item) {
             nsImg.draw(in: imageRect, from: .zero, operation: .sourceOver, fraction: 1.0)
         }
-        // Draw the border exactly on the image rect
+        // Draw the border on a rect inset by half border width from the canvas
         if borderWidth > 0 {
+            let borderRect = CGRect(origin: .zero, size: size).insetBy(dx: CGFloat(borderWidth) / 2, dy: CGFloat(borderWidth) / 2)
             let path = NSBezierPath(
-                roundedRect: imageRect,
+                roundedRect: borderRect,
                 xRadius: max(0, 10 - borderWidth),
                 yRadius: max(0, 10 - borderWidth)
             )
