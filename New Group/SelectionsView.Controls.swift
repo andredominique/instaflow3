@@ -126,6 +126,7 @@ var controls: some View {
                 Text("Border:")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .frame(minWidth: 60) // Ensures 'Border:' text stays intact when resizing
                 
                 Slider(
                     value: $borderWidth,
