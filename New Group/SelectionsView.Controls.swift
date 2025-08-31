@@ -8,7 +8,7 @@ var controls: some View {
             Text("Style Images:")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
-                .frame(minWidth: 100) // Ensures 'Style Images:' text stays intact when resizing
+                .frame(minWidth: 100, alignment: .leading) // Ensures left alignment and label stays intact
             
             Spacer()
             

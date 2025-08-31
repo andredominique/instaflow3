@@ -118,14 +118,16 @@ var header: some View {
                     randomizeOrder()
                 } label: {
                     Label("Randomize", systemImage: "shuffle")
+                        .frame(minWidth: 90) // Prevents compression when resizing
                 }
                 .buttonStyle(BorderedButtonStyle())
                 .padding(.vertical, 4)
-                
+
                 Button {
                     showResetConfirm = true
                 } label: {
                     Label("Reset", systemImage: "arrow.counterclockwise")
+                        .frame(minWidth: 70) // Prevents compression when resizing
                 }
                 .buttonStyle(BorderedButtonStyle())
                 .padding(.vertical, 4)
