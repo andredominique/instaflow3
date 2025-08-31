@@ -96,6 +96,7 @@ struct Project: Identifiable, Codable {
     var selectionBorderWidth: Double = 0
     var selectionBackgroundHex: String = "#000000"
     var selectionColorOption: String = "black" // "white" | "black" | "custom"
+    var hasCustomOrder: Bool = false // Track if images have been manually reordered
 
     var selectionBackgroundColor: Color {
         get { Color(hex: selectionBackgroundHex) ?? .black }

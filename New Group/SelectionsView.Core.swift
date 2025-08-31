@@ -57,6 +57,7 @@ struct SelectionsView: View {
 
     // Capture the "original order after coming from Folders"
     @State var originalOrderIDs: [UUID] = []
+    // We keep this as @State for local view handling, but use the model.project.hasCustomOrder for persistence
     @State var haveCapturedOriginal = false
     
     // NEW: Shift key state and hover tracking for repositioning
@@ -114,10 +115,12 @@ struct SelectionsView: View {
         }
         .ignoresSafeArea(.container, edges: .bottom) // Allow content to extend to bottom edge
         .onAppear {
-            if !haveCapturedOriginal {
+            // Only sort and capture original order if this is the first time loading
+            if !model.project.hasCustomOrder {
                 sortImagesByFolderThenName()
                 captureOriginalOrderIfNeeded()
             }
+            
             setupShiftKeyMonitoring()
             setupUndoRedoKeyMonitoring()
             
@@ -397,6 +400,9 @@ struct SelectionsView: View {
             // updatedItem.disabled = disabled.contains { $0.id == item.id } ? true : updatedItem.disabled
             return updatedItem
         }
+        
+        // Mark that we have a custom order now
+        model.project.hasCustomOrder = true
     }
     
     // MARK: - Capture Original Order
@@ -407,6 +413,7 @@ struct SelectionsView: View {
             originalOrderIDs = model.project.images
                 .sorted { $0.orderIndex < $1.orderIndex }
                 .map { $0.id }
+            model.project.hasCustomOrder = true
             haveCapturedOriginal = true
         }
     }

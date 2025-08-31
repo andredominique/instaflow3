@@ -66,9 +66,11 @@ final class AppModel: ObservableObject {
             }
         }
 
-        // Sort deterministically (by filename) then re-assign orderIndex
-        collected.sort { $0.url.lastPathComponent.localizedCaseInsensitiveCompare($1.url.lastPathComponent) == .orderedAscending }
-        for i in collected.indices { collected[i].orderIndex = i }
+        // Only sort by filename if we don't have a custom order
+        if !project.hasCustomOrder {
+            collected.sort { $0.url.lastPathComponent.localizedCaseInsensitiveCompare($1.url.lastPathComponent) == .orderedAscending }
+            for i in collected.indices { collected[i].orderIndex = i }
+        }
 
         project.images = collected
         objectWillChange.send()
@@ -88,6 +90,7 @@ final class AppModel: ObservableObject {
         imgs.insert(item, at: to)
         for i in imgs.indices { imgs[i].orderIndex = i }
         project.images = imgs
+        project.hasCustomOrder = true // Mark that we have a custom order
         objectWillChange.send()
     }
     

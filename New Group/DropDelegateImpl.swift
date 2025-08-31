@@ -7,6 +7,7 @@ struct DropDelegateImpl: DropDelegate {
     @Binding var draggingID: UUID?
     let isShiftPressed: Bool
     let saveToHistory: () -> Void  // NEW: Add history saving callback
+    @ObservedObject var model: AppModel
 
     func dropEntered(info: DropInfo) {
         // Only allow reordering when NOT in shift mode
@@ -26,6 +27,7 @@ struct DropDelegateImpl: DropDelegate {
             let moving = allItems.remove(at: from)
             allItems.insert(moving, at: to)
             for i in allItems.indices { allItems[i].orderIndex = i }
+            model.project.hasCustomOrder = true // Mark that we have a custom order
         }
     }
 

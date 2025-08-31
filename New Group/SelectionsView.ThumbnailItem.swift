@@ -87,7 +87,8 @@ extension SelectionsView {
             allItems: $model.project.images,
             draggingID: $draggingID,
             isShiftPressed: isShiftPressed,
-            saveToHistory: saveToHistory  // NEW: Pass the history saving function
+            saveToHistory: saveToHistory,  // NEW: Pass the history saving function
+            model: model // Pass the AppModel
         ))
     }
 }
