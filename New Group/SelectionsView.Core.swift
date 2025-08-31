@@ -435,6 +435,10 @@ struct SelectionsView: View {
             backgroundColor = Color(nsColor: colorPanel.color)
             selectedColorOption = .custom
             syncBackgroundColorToProject()
+            let ns = NSColor(backgroundColor)
+            print("DEBUG: Set global color to R:", ns.redComponent, "G:", ns.greenComponent, "B:", ns.blueComponent, "Aspect:", model.project.aspect)
+            print("DEBUG: model.project.reelBorderColor:", model.project.reelBorderColor)
+            print("DEBUG: model.project.carouselBorderColor:", model.project.carouselBorderColor)
         }
     }
 }
