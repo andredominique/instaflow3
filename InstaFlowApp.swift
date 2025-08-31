@@ -8,13 +8,14 @@ struct InstaFlowApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(model)
-                    // Reduce minimum window size constraints to allow smaller resizing
+                    // Restored minimum window size constraints (previously reduced for smaller resizing)
+                    // To allow smaller resizing again, set minWidth: 400, idealWidth: 800, minHeight: 300, idealHeight: 600
                     .frame(
-                        minWidth: 400,  // Reduced from 1200
-                        idealWidth: 800, // Reduced from 1480
+                        minWidth: 1200,  // Restored from 400
+                        idealWidth: 1480, // Restored from 800
                         maxWidth: 1600,
-                        minHeight: 300, // Reduced from 720
-                        idealHeight: 600,
+                        minHeight: 720, // Restored from 300
+                        idealHeight: 820,
                         maxHeight: 900
                     )
         }
@@ -25,7 +26,7 @@ struct InstaFlowApp: App {
         // Allow window resizing
         .windowResizability(.contentMinSize)
         // Start at a nice default size
-            .defaultSize(width: 800, height: 600) // Reduced from 1480x820
+            .defaultSize(width: 1480, height: 820) // Restored from 800x600
         // ENABLE FULL SCREEN - Add commands for full screen support
         .commands {
             CommandGroup(replacing: .windowSize) {
