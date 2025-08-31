@@ -1,0 +1,95 @@
+//
+// Auto-split: thumbnailItem
+//
+import SwiftUI
+extension SelectionsView {
+@ViewBuilder func thumbnailItem(_ item: ProjectImage) -> some View {
+        ZStack {
+            if draggingID == item.id && !isShiftPressed {
+                // Show placeholder when dragging for reorder
+                Color(nsColor: .windowBackgroundColor)
+                    .aspectRatio(model.project.aspect.aspect, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .shadow(radius: 1)
+            } else {
+                ZStack {
+                    // Base thumbnail image with background color support
+                    // In your thumbnailItem function, replace the ThumbView call with:
+                    ThumbView(
+                        url: item.url,
+                        aspect: model.project.aspect.aspect,
+                        offsetX: item.offsetX,
+                        offsetY: item.offsetY,
+                        zoomToFill: model.project.zoomToFill,
+                        backgroundColor: backgroundColor,
+                        borderWidth: borderWidth // NEW: Pass border width
+                    )
+                    
+                    // Reposition overlay and gesture handling
+                    if isShiftPressed {
+                        RepositionOverlayView(
+                            item: item,
+                            model: model,
+                            aspect: model.project.aspect.aspect,
+                            zoomToFill: model.project.zoomToFill,
+                            isHovered: hoveredItemID == item.id,
+                            onHoverChange: { isHovering in
+                                hoveredItemID = isHovering ? item.id : nil
+                            }
+                        )
+                    }
+
+                    // Disabled overlay
+                    if item.disabled {
+                        ZStack {
+                            Rectangle()
+                                .fill(Color.black.opacity(disabledOverlayOpacity))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .allowsHitTesting(false)
+                            
+                            // Eye slash icon
+                            Image(systemName: "eye.slash")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                                .allowsHitTesting(false)
+                        }
+                    }
+                }
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            // Double tap - open full view
+            fullViewItem = item
+            withAnimation(.easeIn(duration: 0.2)) {
+                showFullImageView = true
+            }
+        }
+        .onTapGesture(count: 1) {
+            // Single tap - toggle disabled (only when not in shift mode)
+            if !isShiftPressed {
+                toggleDisabled(item)
+            }
+        }
+        .onDrag {
+            // Drag to reorder (only when not in shift mode)
+            if !isShiftPressed {
+                draggingID = item.id
+                return NSItemProvider(object: item.id.uuidString as NSString)
+            } else {
+                return NSItemProvider() // Empty provider in shift mode
+            }
+        }
+        .onDrop(of: [.text], delegate: DropDelegateImpl(
+            overItem: item,
+            allItems: $model.project.images,
+            draggingID: $draggingID,
+            isShiftPressed: isShiftPressed,
+            saveToHistory: saveToHistory  // NEW: Pass the history saving function
+        ))
+    }
+}
