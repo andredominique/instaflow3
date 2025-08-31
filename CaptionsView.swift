@@ -141,11 +141,12 @@ struct CaptionsView: View {
                     .font(.body)
                     .frame(minHeight: 120)
                     .scrollContentBackground(.hidden)
-                    .background(Color.white)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .foregroundColor(Color.primary)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .padding(8)
-            .background(Color.white)
+            .background(Color(nsColor: .textBackgroundColor))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(Color.black.opacity(0.1), lineWidth: 1)
