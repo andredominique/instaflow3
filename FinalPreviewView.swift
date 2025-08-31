@@ -74,6 +74,8 @@ struct FinalPreviewView: View {
                         if snapped != model.project.reelSecondsPerImage {
                             model.project.reelSecondsPerImage = snapped
                         }
+                        // Notify RightPreviewPane to update slideshow speed
+                        NotificationCenter.default.post(name: Notification.Name("TapTempoChanged"), object: snapped)
                     }
                 } else {
                     // Show message when crop is disabled
