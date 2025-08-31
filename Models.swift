@@ -74,9 +74,9 @@ struct Project: Identifiable, Codable {
 
     // (Legacy/other) settings
     var carouselBorderPx: Int = 0
-    var carouselBorderColor: ColorData = .white
+    var carouselBorderColor: ColorData = .black
     var reelBorderPx: Int = 0
-    var reelBorderColor: ColorData = .white
+    var reelBorderColor: ColorData = .black
     var reelSecondsPerImage: Double = 2.0
     var squareBorderPx: Int = 0
     var squareBorderColor: ColorData = .white

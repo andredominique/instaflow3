@@ -130,16 +130,16 @@ var controls: some View {
                 Slider(
                     value: $borderWidth,
                     in: 0...20,
-                    step: 1,
-                    onEditingChanged: { _ in
-                        // Sync to global project border width
-                        if model.project.aspect == .story9x16 {
-                            model.project.reelBorderPx = Int(borderWidth)
-                        } else {
-                            model.project.carouselBorderPx = Int(borderWidth)
-                        }
-                    }
+                    step: 1
                 )
+                .onChange(of: borderWidth) { _, newVal in
+                    // Sync to global project border width on every change
+                    if model.project.aspect == .story9x16 {
+                        model.project.reelBorderPx = Int(newVal)
+                    } else {
+                        model.project.carouselBorderPx = Int(newVal)
+                    }
+                }
                 .frame(width: 80)
                 .help("Add border around images")
                 
