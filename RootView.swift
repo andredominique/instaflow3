@@ -22,7 +22,7 @@ struct RootView: View {
 
     // UPDATED: Reduced right pane width and increased left min width
     private let rightPaneWidth: CGFloat = 290  // Restored to previous value
-    private let leftMinWidth: CGFloat  = 100   // Reduced by 100px
+    private let leftMinWidth: CGFloat  = 0   // Reduced by a further 300px
     private let dividerWidth: CGFloat  = 1
 
     private let steps: [(title: String, id: Int, icon: String)] = [
