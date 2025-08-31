@@ -32,7 +32,7 @@ struct FinalPreviewExport {
 
         // Border
         if borderWidth > 0 {
-            let inset = CGFloat(borderWidth) / 2
+            let inset = CGFloat(borderWidth)
             let rect = target.insetBy(dx: inset, dy: inset)
             let path = NSBezierPath(
                 roundedRect: rect,
