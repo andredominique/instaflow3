@@ -349,7 +349,7 @@ struct CaptionsView: View {
             }
         }
         .padding(16)
-    .frame(minWidth: 220)
+    .frame(minWidth: 0)
     }
 
     // MARK: - Text Cleaning for Caption
