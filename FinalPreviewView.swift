@@ -60,61 +60,6 @@ struct FinalPreviewView: View {
                     GroupBox {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack { Text("Reel Settings").font(.headline); Spacer() }
-
-                            // Border
-                            HStack(spacing: 8) {
-                                Text("Border").frame(width: 120, alignment: .leading).font(.body)
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(model.project.reelBorderPx) },
-                                        set: { newVal in
-                                            model.project.reelBorderPx = Int(newVal)
-                                            model.project.aspect = .story9x16
-                                        }
-                                    ),
-                                    in: 0...100,
-                                    step: 5
-                                )
-                                .frame(width: 160)
-                                Text("\(model.project.reelBorderPx) px")
-                                    .frame(width: 64, alignment: .trailing)
-                                    .font(.body)
-                                    .monospaced()
-                                Spacer()
-                            }
-
-                            // Background
-                            HStack(spacing: 8) {
-                                Text("Background").frame(width: 120, alignment: .leading).font(.body)
-                                ColorPicker(
-                                    "",
-                                    selection: Binding(
-                                        get: { reelBGColor },
-                                        set: { newValue in
-                                            if let cg = newValue.cgColor,
-                                               let ns = NSColor(cgColor: cg)?.usingColorSpace(.sRGB) {
-                                                model.project.reelBorderColor = ColorData(
-                                                    red: Double(ns.redComponent),
-                                                    green: Double(ns.greenComponent),
-                                                    blue: Double(ns.blueComponent),
-                                                    opacity: 1
-                                                )
-                                                model.project.aspect = .story9x16
-                                            }
-                                        }
-                                    ),
-                                    supportsOpacity: false
-                                )
-                                .labelsHidden()
-                                .frame(width: 36, height: 24)
-                                Spacer()
-                            }
-
-                            // Info line
-                            Text("Images selected: \(enabledImagesOrdered.count)  •  Aspect: 9:16  •  Frame rate: \(reelFPS)p")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
                             // Tap Tempo (writes to model.project.reelSecondsPerImage)
                             TapTempoControl(embedded: true, hideHeader: true, showReset: false)
                                 .environmentObject(model)
@@ -128,64 +73,6 @@ struct FinalPreviewView: View {
                         let snapped = snapToFrameDuration(clamped, fps: reelFPS)
                         if snapped != model.project.reelSecondsPerImage {
                             model.project.reelSecondsPerImage = snapped
-                        }
-                    }
-
-                    // Carousel images settings
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack { Text("Carousel Settings").font(.headline); Spacer() }
-
-                            HStack(spacing: 8) {
-                                Text("Border").frame(width: 120, alignment: .leading).font(.body)
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(model.project.carouselBorderPx) },
-                                        set: { newVal in
-                                            model.project.carouselBorderPx = Int(newVal)
-                                            model.project.aspect = .feed4x5
-                                        }
-                                    ),
-                                    in: 0...100,
-                                    step: 5
-                                )
-                                .frame(width: 160)
-                                Text("\(model.project.carouselBorderPx) px")
-                                    .frame(width: 64, alignment: .trailing)
-                                    .font(.body)
-                                    .monospaced()
-                                Spacer()
-                            }
-                            .controlSize(.small)
-
-                            HStack(spacing: 8) {
-                                Text("Background").frame(width: 120, alignment: .leading).font(.body)
-                                ColorPicker(
-                                    "",
-                                    selection: Binding(
-                                        get: { carouselBGColor },
-                                        set: { newValue in
-                                            if let cg = newValue.cgColor,
-                                               let ns = NSColor(cgColor: cg)?.usingColorSpace(.sRGB) {
-                                                model.project.carouselBorderColor = ColorData(
-                                                    red: Double(ns.redComponent),
-                                                    green: Double(ns.greenComponent),
-                                                    blue: Double(ns.blueComponent),
-                                                    opacity: 1
-                                                )
-                                                model.project.aspect = .feed4x5
-                                            }
-                                        }
-                                    ),
-                                    supportsOpacity: false
-                                )
-                                .labelsHidden()
-                                .frame(width: 36, height: 24)
-                            }
-
-                            Text("Images selected: \(enabledImagesOrdered.count)  •  Aspect: 4:5 (forced)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
                     }
                 } else {
