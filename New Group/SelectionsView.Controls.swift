@@ -51,6 +51,7 @@ var controls: some View {
                 Text("Background:")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .frame(minWidth: 80) // Ensures 'Background:' text stays intact when resizing
                 
                 // Quick color buttons and custom picker with REDUCED SIZE
                 HStack(spacing: 2) {
@@ -153,6 +154,7 @@ var controls: some View {
             Text("Aspect:")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .frame(minWidth: 60) // Ensures 'Aspect:' text stays intact when resizing
 
             // UPDATED: Aspect ratio buttons with standard bordered style when inactive
             HStack(spacing: 4) {
@@ -163,6 +165,7 @@ var controls: some View {
                             model.setAspectRatio(.feed4x5)
                         } label: {
                             Text("4:5")
+                                .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(PlainButtonStyle())
                         .padding(.horizontal, 10)
@@ -181,6 +184,7 @@ var controls: some View {
                             model.setAspectRatio(.feed4x5)
                         } label: {
                             Text("4:5")
+                                .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(BorderedButtonStyle())
                         .padding(.vertical, 4)
@@ -195,6 +199,7 @@ var controls: some View {
                             model.setAspectRatio(.story9x16)
                         } label: {
                             Text("9:16")
+                                .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(PlainButtonStyle())
                         .padding(.horizontal, 10)
@@ -213,6 +218,7 @@ var controls: some View {
                             model.setAspectRatio(.story9x16)
                         } label: {
                             Text("9:16")
+                                .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(BorderedButtonStyle())
                         .padding(.vertical, 4)
