@@ -10,11 +10,12 @@ struct InstaFlowApp: App {
                 .environmentObject(model)
                     // Restored minimum window size constraints (previously reduced for smaller resizing)
                     // To allow smaller resizing again, set minWidth: 400, idealWidth: 800, minHeight: 300, idealHeight: 600
+                    // Reduced minWidth by 200px to allow left window to be smaller
                     .frame(
-                        minWidth: 1200,  // Restored from 400
-                        idealWidth: 1480, // Restored from 800
+                        minWidth: 1000,  // Reduced by 200px from 1200
+                        idealWidth: 1280, // Reduced by 200px from 1480
                         maxWidth: 1600,
-                        minHeight: 720, // Restored from 300
+                        minHeight: 720,
                         idealHeight: 820,
                         maxHeight: 900
                     )
