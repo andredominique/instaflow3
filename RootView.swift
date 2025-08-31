@@ -104,6 +104,7 @@ struct RootView: View {
                 }
             }
             .padding(.vertical, 10)
+            .padding(.leading, 120)
         }
         .padding(.horizontal, 12)
         .frame(height: 70) // Set consistent header height
