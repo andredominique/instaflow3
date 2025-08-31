@@ -348,16 +348,15 @@ private struct AspectContent: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
+                // Background color
                 borderColor
                 Group {
                     if let img = image, let item = item {
                         if cropEnabled {
-                            // Cropped view with positioning
                             let rawPad = CGFloat(borderPx) / baseWidth * geo.size.width
                             let maxPad = max(0, min(rawPad, min(geo.size.width, geo.size.height) / 2 - 0.5))
                             let innerW = max(0, geo.size.width  - maxPad * 2)
                             let innerH = max(0, geo.size.height - maxPad * 2)
-                            
                             GeometryReader { innerGeo in
                                 Image(nsImage: img)
                                     .resizable()
@@ -368,15 +367,22 @@ private struct AspectContent: View {
                                     )
                                     .frame(width: innerW, height: innerH)
                                     .clipped()
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(borderColor, lineWidth: CGFloat(borderPx))
+                                    )
                             }
                             .frame(width: innerW, height: innerH)
                             .position(x: geo.size.width / 2, y: geo.size.height / 2)
                         } else {
-                            // Full uncropped image
                             Image(nsImage: img)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(borderColor, lineWidth: CGFloat(borderPx))
+                                )
                         }
                     } else if item != nil {
                         Color.gray.opacity(0.15).overlay(ProgressView())
