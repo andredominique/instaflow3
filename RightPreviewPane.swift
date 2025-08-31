@@ -50,7 +50,7 @@ struct RightPreviewPane: View {
         VStack(spacing: 0) {
                 // NEW: Header matching RootView height
                 header
-                    .background(isReelAspect ? model.project.reelBorderColor.swiftUIColor : model.project.carouselBorderColor.swiftUIColor)
+                    .background(Color(nsColor: .windowBackgroundColor)) // Always neutral, not affected by background color setting
             
             Divider()
                 .background(Color.adaptiveLine)
