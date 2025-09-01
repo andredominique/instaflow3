@@ -100,17 +100,16 @@ struct RightPreviewPane: View {
                         .overlay(
                             GeometryReader { containerGeo in
                                 VStack {
-                                    AspectContent(
+                                    AspectContentNew(
                                         item: currentItem,
-                                        aspect: contentAspect,
+                                        aspectRatio: contentAspect,
                                         cornerRadius: 0,
                                         zoomToFill: model.project.zoomToFill,
                                         borderPx: borderPx * 2,
                                         borderColor: borderColor,
                                         baseWidth: 1080,
                                         cropEnabled: model.project.cropEnabled,
-                                        topPadding: screenPaddingCurrent,
-                                        forceAspect: true  // Force the aspect ratio to be applied
+                                        topPadding: screenPaddingCurrent
                                     )
                                     .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
                                     // Use the computed currentVerticalShift property
@@ -406,9 +405,10 @@ struct BlueToggleStyle: ToggleStyle {
     }
 }
 
-private struct AspectContent: View {
+// Completely redesigned AspectContent view to fix the aspect ratio toggle issue
+struct AspectContentNew: View {
     let item: ProjectImage?
-    let aspect: CGFloat
+    let aspectRatio: CGFloat
     let cornerRadius: CGFloat
     let zoomToFill: Bool
     let borderPx: Int
@@ -416,14 +416,13 @@ private struct AspectContent: View {
     let baseWidth: CGFloat
     let cropEnabled: Bool
     let topPadding: CGFloat
-    let forceAspect: Bool // New parameter to force aspect ratio
 
     @State private var image: NSImage?
     @State private var imageAspect: CGFloat = 1.0
 
     private func maxOffsetX(for containerSize: CGSize) -> CGFloat {
-        guard cropEnabled && zoomToFill else { return 0 }
-        if imageAspect > aspect {
+        guard zoomToFill else { return 0 }
+        if imageAspect > aspectRatio {
             let imageWidth = containerSize.height * imageAspect
             let overflow = imageWidth - containerSize.width
             return overflow / 2
@@ -432,8 +431,8 @@ private struct AspectContent: View {
     }
 
     private func maxOffsetY(for containerSize: CGSize) -> CGFloat {
-        guard cropEnabled && zoomToFill else { return 0 }
-        if imageAspect < aspect {
+        guard zoomToFill else { return 0 }
+        if imageAspect < aspectRatio {
             let imageHeight = containerSize.width / imageAspect
             let overflow = imageHeight - containerSize.height
             return overflow / 2
@@ -458,58 +457,52 @@ private struct AspectContent: View {
 
     var body: some View {
         GeometryReader { geo in
-            // Border as background, image is padded inside
             ZStack {
-                RoundedRectangle(cornerRadius: 0, style: .continuous)
-                    .fill(borderColor)
-                Group {
-                    if let img = image, let item = item {
-                        if cropEnabled {
-                            let rawPad = CGFloat(borderPx) / baseWidth * geo.size.width
-                            let maxPad = max(0, min(rawPad, min(geo.size.width, geo.size.height) / 2 - 0.5))
-                            let innerW = max(0, geo.size.width  - maxPad * 2)
-                            let innerH = max(0, geo.size.height - maxPad * 2)
-                            GeometryReader { innerGeo in
-                                Image(nsImage: img)
-                                    .resizable()
-                                    .modifier(ZoomModifier(zoomToFill: zoomToFill))
-                                    .offset(
-                                        x: zoomToFill ? CGFloat(item.offsetX) * maxOffsetX(for: CGSize(width: innerW, height: innerH)) : 0,
-                                        y: zoomToFill ? CGFloat(item.offsetY) * maxOffsetY(for: CGSize(width: innerW, height: innerH)) : 0
+                // Container with the desired aspect ratio
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.clear)
+                    .aspectRatio(aspectRatio, contentMode: .fit)
+                    .overlay(
+                        GeometryReader { aspectGeo in
+                            // Content within the aspect ratio container
+                            ZStack {
+                                // Border as background
+                                RoundedRectangle(cornerRadius: cornerRadius)
+                                    .fill(borderColor)
+                                
+                                if let img = image, let item = item {
+                                    let padding = cropEnabled ? CGFloat(borderPx) / baseWidth * aspectGeo.size.width : 0
+                                    
+                                    Image(nsImage: img)
+                                        .resizable()
+                                        .aspectRatio(contentMode: zoomToFill ? .fill : .fit)
+                                        .offset(
+                                            x: zoomToFill ? CGFloat(item.offsetX) * maxOffsetX(for: aspectGeo.size) : 0,
+                                            y: zoomToFill ? CGFloat(item.offsetY) * maxOffsetY(for: aspectGeo.size) : 0
+                                        )
+                                        .padding(padding)
+                                        .frame(width: aspectGeo.size.width, height: aspectGeo.size.height)
+                                        .clipped()
+                                } else if item != nil {
+                                    Color.gray.opacity(0.15).overlay(ProgressView())
+                                } else {
+                                    Color.gray.opacity(0.08).overlay(
+                                        VStack(spacing: 8) {
+                                            Image(systemName: "photo")
+                                            Text("No images")
+                                        }
+                                        .foregroundStyle(.secondary)
                                     )
-                                    .frame(width: innerW - maxPad * 2, height: innerH - maxPad * 2)
-                                    .clipped()
-                                    .padding(maxPad)
+                                }
                             }
-                            .frame(width: innerW, height: innerH)
-                            .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                            .frame(width: aspectGeo.size.width, height: aspectGeo.size.height)
                             .padding(.top, topPadding)
-                        } else {
-                            Image(nsImage: img)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(CGFloat(borderPx) * 1.2)
-                                .background(Color.clear)
-                                .padding(.top, topPadding)
                         }
-                    } else if item != nil {
-                        Color.gray.opacity(0.15).overlay(ProgressView())
-                    } else {
-                        Color.gray.opacity(0.08).overlay(
-                            VStack(spacing: 8) {
-                                Image(systemName: "photo")
-                                Text("No images")
-                            }
-                            .foregroundStyle(.secondary)
-                        )
-                    }
-                }
+                    )
+                    .frame(maxWidth: geo.size.width, maxHeight: geo.size.height)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        // Always use the specified aspect ratio when forceAspect is true
-        .aspectRatio(cropEnabled || forceAspect ? aspect : (imageAspect > 0 ? imageAspect : 1.0), contentMode: .fit)
         .task { load() }
         .onChange(of: item?.url) { _, _ in load() }
     }
