@@ -4,24 +4,22 @@ import AppKit
 struct RightPreviewPane: View {
     @EnvironmentObject private var model: AppModel
 
-    private let paneWidth: CGFloat = 290  // Reduced from 360
-    private let panePadding: CGFloat = 12
+    private let paneWidth: CGFloat = 340
+    private let panePadding: CGFloat = 20
 
     private let phoneCorner: CGFloat = 26
     private let screenCorner: CGFloat = 14
-    private let screenPadding: CGFloat = 10
-    private let phoneAspect: CGFloat = 9.0 / 16.0
+    private let screenPaddingStory: CGFloat = 0    // For 9:16 aspect
+    private let screenPaddingCarousel: CGFloat = 0 // For 4:5 aspect
+
+    private let phoneAspect: CGFloat = 9.0 / 19.0
 
     @State private var currentIndex: Int = 0
     @State private var aspectInitialized = false
-    
-    // Slideshow controls - Changed default to true
     @State private var isPlaying = true
     @State private var slideshowSpeed: Double = 1.0
-    // Remove observer from init, will add in .onAppear
     @State private var slideshowTimer: Timer?
-    
-    // Screen Mode state - Added for appearance toggle
+
     @AppStorage("selectedAppearance") private var selectedAppearance = "light"
 
     private var slides: [ProjectImage] {
@@ -32,59 +30,86 @@ struct RightPreviewPane: View {
     }
 
     private var contentAspect: CGFloat {
-        model.project.cropEnabled ? model.project.aspect.aspect : (currentItem?.originalAspect ?? 1.0)
+        model.project.aspect.aspect
     }
     private var isReelAspect: Bool { model.project.aspect == .story9x16 }
-    
+    private var isPostAspect: Bool { abs(model.project.aspect.aspect - (4.0 / 5.0)) < 0.01 }
+
     private var borderPx: Int {
         if !model.project.cropEnabled { return 0 }
         return isReelAspect ? model.project.reelBorderPx : model.project.carouselBorderPx
     }
-    
+
     private var borderColor: Color {
-        if !model.project.cropEnabled { return .clear }
-        return isReelAspect ? model.project.reelBorderColor.swiftUIColor : model.project.carouselBorderColor.swiftUIColor
+        if !model.project.cropEnabled {
+            return .clear
+        }
+        if isReelAspect {
+            return model.project.reelBorderColor.swiftUIColor
+        } else {
+            return model.project.carouselBorderColor.swiftUIColor
+        }
+    }
+
+    private var screenPaddingCurrent: CGFloat {
+        isReelAspect ? screenPaddingStory : screenPaddingCarousel
     }
 
     var body: some View {
         VStack(spacing: 0) {
-                // NEW: Header matching RootView height
-                header
-                    .background(Color.adaptiveBackground) // Matches RootView header color
-            
+            header
+                .background(Color.adaptiveBackground)
             Divider()
                 .background(Color.adaptiveLine)
-            
-            // Main content
             VStack(alignment: .leading, spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: phoneCorner, style: .continuous)
-                        .fill(Color.black)
+                        .fill(Color.clear)
+                        .background(
+                            Group {
+                                if isReelAspect {
+                                    Image("REELBG")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                } else if isPostAspect {
+                                    Image("POSTBG")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                } else {
+                                    Color.black
+                                }
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
+                        )
                         .overlay(
                             RoundedRectangle(cornerRadius: screenCorner, style: .continuous)
-                                .fill(Color.black)
-                                .padding(screenPadding)
+                                .fill(Color.clear)
                                 .overlay {
-                                    AspectContent(
-                                        item: currentItem,
-                                        aspect: contentAspect,
-                                        cornerRadius: 0,
-                                        zoomToFill: model.project.zoomToFill, // Use global zoom setting
-                                        borderPx: borderPx,
-                                        borderColor: borderColor,
-                                        baseWidth: 1080,
-                                        cropEnabled: model.project.cropEnabled
-                                    )
+                                    GeometryReader { containerGeo in
+                                        VStack {
+                                            AspectContent(
+                                                item: currentItem,
+                                                aspect: contentAspect,
+                                                cornerRadius: 0,
+                                                zoomToFill: model.project.zoomToFill,
+                                                borderPx: borderPx,
+                                                borderColor: borderColor,
+                                                baseWidth: 1080,
+                                                cropEnabled: model.project.cropEnabled,
+                                                topPadding: screenPaddingCurrent
+                                            )
+                                            .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
+                                        }
+                                    }
                                 }
                                 .clipShape(RoundedRectangle(cornerRadius: screenCorner, style: .continuous))
                         )
                         .aspectRatio(phoneAspect, contentMode: .fit)
                 }
-                .frame(height: 450)  // Reduced from 360 to fit narrower pane
+                .frame(height: 600)
                 .frame(maxWidth: paneWidth - panePadding * 2)
                 .frame(maxWidth: .infinity, alignment: .top)
 
-                // UPDATED: Slideshow controls below preview with navigation buttons
                 HStack(spacing: 8) {
                     Button { prev() } label: {
                         Image(systemName: "chevron.left")
@@ -92,9 +117,10 @@ struct RightPreviewPane: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(slides.isEmpty || slides.count <= 1)
-                    
+                    .padding(.leading, 8) // Added left padding
+
                     Spacer()
-                    
+
                     Button {
                         toggleSlideshow()
                     } label: {
@@ -107,7 +133,7 @@ struct RightPreviewPane: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(slides.isEmpty || slides.count <= 1)
                     .controlSize(.small)
-                    
+
                     Picker("", selection: $slideshowSpeed) {
                         Text("0.2s").tag(0.2)
                         Text("0.5s").tag(0.5)
@@ -118,37 +144,30 @@ struct RightPreviewPane: View {
                     .frame(width: 50)
                     .controlSize(.small)
                     .disabled(slides.isEmpty || slides.count <= 1)
-                    
+
                     Spacer()
+
+                    Button { next() } label: {
+                        Image(systemName: "chevron.right")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(slides.isEmpty || slides.count <= 1)
+                    .padding(.trailing, 8) // Added right padding
                 }
                 .padding(.top, 6)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    ScrollView {
-                        Text(model.project.caption.isEmpty ? "No caption set." : model.project.caption)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(6)
-                            .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
-                            .font(.caption)
-                    }
-                    .frame(maxHeight: .infinity, alignment: .top)
-                }
-                .frame(maxHeight: .infinity, alignment: .top)
-                .layoutPriority(1)
-                
-                // ADDED: Screen Mode toggle buttons at the bottom
                 Divider()
                     .padding(.vertical, 6)
-                
+
                 HStack(spacing: 4) {
                     Text("Screen Mode:")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    
+
                     Spacer()
-                    
+
                     HStack(spacing: 0) {
-                        // Light button
                         Button {
                             selectedAppearance = "light"
                             applyAppearance()
@@ -179,8 +198,7 @@ struct RightPreviewPane: View {
                                 )
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 4))
-                        
-                        // Dark button
+
                         Button {
                             selectedAppearance = "dark"
                             applyAppearance()
@@ -223,14 +241,10 @@ struct RightPreviewPane: View {
         .onAppear {
             if !aspectInitialized { aspectInitialized = true }
             clampIndex()
-            // Auto-start slideshow if conditions are met
             if !isPlaying && !slides.isEmpty && slides.count > 1 {
                 startSlideshow()
             }
-            // Apply current appearance
             applyAppearance()
-
-            // Listen for Tap Tempo changes and update slideshowSpeed
             NotificationCenter.default.addObserver(forName: Notification.Name("TapTempoChanged"), object: nil, queue: .main) { notification in
                 if let newSpeed = notification.object as? Double {
                     slideshowSpeed = newSpeed
@@ -241,7 +255,6 @@ struct RightPreviewPane: View {
             clampIndex()
             if isPlaying {
                 stopSlideshow()
-                // Restart slideshow if conditions are met
                 if !slides.isEmpty && slides.count > 1 {
                     startSlideshow()
                 }
@@ -257,8 +270,7 @@ struct RightPreviewPane: View {
             stopSlideshow()
         }
     }
-    
-    // MARK: - Header
+
     private var header: some View {
         HStack {
             Spacer()
@@ -269,31 +281,29 @@ struct RightPreviewPane: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .frame(height: 70) // Match RootView header height
+        .frame(height: 70)
     }
 
     private var currentItem: ProjectImage? {
         guard slides.indices.contains(currentIndex) else { return nil }
         return slides[currentIndex]
     }
-    
+
     private func clampIndex() {
         if slides.isEmpty { currentIndex = 0 }
         else if currentIndex >= slides.count { currentIndex = max(0, slides.count - 1) }
     }
-    
+
     private func next() {
         guard !slides.isEmpty else { return }
         currentIndex = (currentIndex + 1) % slides.count
     }
-    
+
     private func prev() {
         guard !slides.isEmpty else { return }
         currentIndex = (currentIndex - 1 + slides.count) % slides.count
     }
-    
-    // MARK: - Slideshow Controls
-    
+
     private func toggleSlideshow() {
         if isPlaying {
             stopSlideshow()
@@ -301,56 +311,81 @@ struct RightPreviewPane: View {
             startSlideshow()
         }
     }
-    
+
     private func startSlideshow() {
         guard !slides.isEmpty && slides.count > 1 else { return }
-        
         isPlaying = true
         slideshowTimer = Timer.scheduledTimer(withTimeInterval: slideshowSpeed, repeats: true) { _ in
             next()
         }
     }
-    
+
     private func stopSlideshow() {
         isPlaying = false
         slideshowTimer?.invalidate()
         slideshowTimer = nil
     }
-    
-    // MARK: - Appearance Controls
-    
+
     private func applyAppearance() {
         let appearance = selectedAppearance == "dark" ? NSAppearance.Name.darkAqua : NSAppearance.Name.aqua
         NSApp.appearance = NSAppearance(named: appearance)
-        
-        // Also notify any listeners about the change
         NotificationCenter.default.post(name: Notification.Name("AppearanceChanged"), object: selectedAppearance)
     }
 }
 
-// MARK: - AspectContent with crop toggle support
 private struct AspectContent: View {
     let item: ProjectImage?
     let aspect: CGFloat
     let cornerRadius: CGFloat
-    let zoomToFill: Bool // Now receives global zoom setting
+    let zoomToFill: Bool
     let borderPx: Int
     let borderColor: Color
     let baseWidth: CGFloat
     let cropEnabled: Bool
+    let topPadding: CGFloat
 
     @State private var image: NSImage?
+    @State private var imageAspect: CGFloat = 1.0
 
-    private var imageAspect: CGFloat {
-        guard let image = image else { return 1.0 }
-        return image.size.width / image.size.height
+    private func maxOffsetX(for containerSize: CGSize) -> CGFloat {
+        guard cropEnabled && zoomToFill else { return 0 }
+        if imageAspect > aspect {
+            let imageWidth = containerSize.height * imageAspect
+            let overflow = imageWidth - containerSize.width
+            return overflow / 2
+        }
+        return 0
+    }
+
+    private func maxOffsetY(for containerSize: CGSize) -> CGFloat {
+        guard cropEnabled && zoomToFill else { return 0 }
+        if imageAspect < aspect {
+            let imageHeight = containerSize.width / imageAspect
+            let overflow = imageHeight - containerSize.height
+            return overflow / 2
+        }
+        return 0
+    }
+
+    private func load() {
+        guard let url = item?.url else {
+            image = nil
+            imageAspect = 1.0
+            return
+        }
+        if let loadedImage = NSImage(contentsOf: url) {
+            image = loadedImage
+            imageAspect = loadedImage.size.width / loadedImage.size.height
+        } else {
+            image = nil
+            imageAspect = 1.0
+        }
     }
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Background color
-                borderColor
+                // Background is now handled in parent container. Remove all BG logic here.
                 Group {
                     if let img = image, let item = item {
                         if cropEnabled {
@@ -375,6 +410,7 @@ private struct AspectContent: View {
                             }
                             .frame(width: innerW, height: innerH)
                             .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                            .padding(.top, topPadding)
                         } else {
                             Image(nsImage: img)
                                 .resizable()
@@ -384,6 +420,7 @@ private struct AspectContent: View {
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                                         .stroke(borderColor, lineWidth: CGFloat(borderPx) * 1.2)
                                 )
+                                .padding(.top, topPadding)
                         }
                     } else if item != nil {
                         Color.gray.opacity(0.15).overlay(ProgressView())
@@ -404,42 +441,20 @@ private struct AspectContent: View {
         .task { load() }
         .onChange(of: item?.url) { _, _ in load() }
     }
-
-    // Offset calculations for cropped mode
-    private func maxOffsetX(for containerSize: CGSize) -> CGFloat {
-        guard cropEnabled && zoomToFill else { return 0 }
-        if imageAspect > aspect {
-            let imageWidth = containerSize.height * imageAspect
-            let overflow = imageWidth - containerSize.width
-            return overflow / 2
-        }
-        return 0
-    }
-    
-    private func maxOffsetY(for containerSize: CGSize) -> CGFloat {
-        guard cropEnabled && zoomToFill else { return 0 }
-        if imageAspect < aspect {
-            let imageHeight = containerSize.width / imageAspect
-            let overflow = imageHeight - containerSize.height
-            return overflow / 2
-        }
-        return 0
-    }
-
-    private func load() {
-        guard let url = item?.url else { image = nil; return }
-        image = NSImage(contentsOf: url)
-    }
 }
 
 private struct ZoomModifier: ViewModifier {
     let zoomToFill: Bool
+
     func body(content: Content) -> some View {
-        zoomToFill ? AnyView(content.scaledToFill()) : AnyView(content.scaledToFit())
+        if zoomToFill {
+            content.scaledToFill()
+        } else {
+            content.scaledToFit()
+        }
     }
 }
 
-// Extension to get original image aspect ratio
 extension ProjectImage {
     var originalAspect: CGFloat? {
         guard let image = NSImage(contentsOf: url) else { return nil }

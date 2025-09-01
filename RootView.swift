@@ -21,7 +21,7 @@ struct RootView: View {
     @State private var searchText: String = ""
 
     // UPDATED: Reduced right pane width and increased left min width
-    private let rightPaneWidth: CGFloat = 290  // Restored to previous value
+    private let rightPaneWidth: CGFloat = 330  // Restored to previous value
     private let leftMinWidth: CGFloat  = 0   // Reduced by a further 300px
     private let dividerWidth: CGFloat  = 1
 
