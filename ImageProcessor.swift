@@ -30,7 +30,11 @@ struct ImageProcessor {
 
         try FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
 
+        // Convert background to sRGB for consistency
         let bg = (background.usingColorSpace(.sRGB) ?? background)
+        
+        // Double the border width as requested
+        let doubleBorderPx = borderPx * 2
 
         for (idx, item) in images.enumerated() {
             autoreleasepool {
@@ -46,60 +50,85 @@ struct ImageProcessor {
                     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
                 ) else { return }
 
-                // Fill full canvas with background (this is also the "border" color)
+                // Fill the entire canvas with the border/background color
                 ctx.setFillColor(bg.cgColor)
                 ctx.fill(CGRect(origin: .zero, size: canvasSize))
-
-                // Inset content rect to create a border INSIDE the final 1080x1080
-                let inset = CGFloat(max(0, borderPx))
-                let contentRect = CGRect(x: inset,
-                                         y: inset,
-                                         width: canvasSize.width - inset * 2,
-                                         height: canvasSize.height - inset * 2)
-
-                // Compute draw rect (fit vs fill)
-                let srcSize = CGSize(width: cg.width, height: cg.height)
-                let scaled = zoomToFill
-                ? aspectFillSize(source: srcSize, into: contentRect.size)
-                : aspectFitSize(source: srcSize, into: contentRect.size)
-
-                var drawRect = CGRect(
-                    x: contentRect.midX - scaled.width  / 2,
-                    y: contentRect.midY - scaled.height / 2,
-                    width: scaled.width,
-                    height: scaled.height
-                )
                 
-                // Apply repositioning offset using CONSISTENT calculation
-                let imageAspect = srcSize.width / srcSize.height
-                let containerAspect: CGFloat = 1.0 // Square aspect
+                let borderWidth = CGFloat(doubleBorderPx)
                 
-                // Calculate max offsets using same logic as views
-                let maxOffsetX: CGFloat
-                if imageAspect > containerAspect {
-                    let imageWidth = contentRect.height * imageAspect
-                    let overflow = imageWidth - contentRect.width
-                    maxOffsetX = overflow / 2
+                if borderWidth > 0 {
+                    // Define the content area with the border inset
+                    let contentRect = CGRect(
+                        x: borderWidth,
+                        y: borderWidth,
+                        width: canvasSize.width - borderWidth * 2,
+                        height: canvasSize.height - borderWidth * 2
+                    )
+                    
+                    // Compute scaled image size
+                    let srcSize = CGSize(width: cg.width, height: cg.height)
+                    let scaled = zoomToFill
+                        ? aspectFillSize(source: srcSize, into: contentRect.size)
+                        : aspectFitSize(source: srcSize, into: contentRect.size)
+                    
+                    // Center the image in the content rect
+                    var drawRect = CGRect(
+                        x: contentRect.midX - scaled.width / 2,
+                        y: contentRect.midY - scaled.height / 2,
+                        width: scaled.width,
+                        height: scaled.height
+                    )
+                    
+                    // Apply repositioning offset
+                    let imageAspect = srcSize.width / srcSize.height
+                    let containerAspect = contentRect.width / contentRect.height
+                    
+                    // Calculate max offsets
+                    let maxOffsetX: CGFloat
+                    if imageAspect > containerAspect {
+                        let imageWidth = contentRect.height * imageAspect
+                        let overflow = imageWidth - contentRect.width
+                        maxOffsetX = overflow / 2
+                    } else {
+                        maxOffsetX = 0
+                    }
+                    
+                    let maxOffsetY: CGFloat
+                    if imageAspect < containerAspect {
+                        let imageHeight = contentRect.width / imageAspect
+                        let overflow = imageHeight - contentRect.height
+                        maxOffsetY = overflow / 2
+                    } else {
+                        maxOffsetY = 0
+                    }
+                    
+                    // Apply the offsets
+                    let offsetX = CGFloat(item.offsetX) * maxOffsetX
+                    let offsetY = CGFloat(item.offsetY) * maxOffsetY
+                    drawRect.origin.x += offsetX
+                    drawRect.origin.y += offsetY
+                    
+                    // Draw the image with clipping to content rect
+                    ctx.saveGState()
+                    ctx.clip(to: contentRect)
+                    ctx.draw(cg, in: drawRect)
+                    ctx.restoreGState()
                 } else {
-                    maxOffsetX = 0
+                    // No border case - just draw the image fitted to the canvas
+                    let srcSize = CGSize(width: cg.width, height: cg.height)
+                    let scaled = zoomToFill
+                        ? aspectFillSize(source: srcSize, into: canvasSize)
+                        : aspectFitSize(source: srcSize, into: canvasSize)
+                    
+                    let drawRect = CGRect(
+                        x: (canvasSize.width - scaled.width) / 2,
+                        y: (canvasSize.height - scaled.height) / 2,
+                        width: scaled.width,
+                        height: scaled.height
+                    )
+                    
+                    ctx.draw(cg, in: drawRect)
                 }
-                
-                let maxOffsetY: CGFloat
-                if imageAspect < containerAspect {
-                    let imageHeight = contentRect.width / imageAspect
-                    let overflow = imageHeight - contentRect.height
-                    maxOffsetY = overflow / 2
-                } else {
-                    maxOffsetY = 0
-                }
-                
-                // Apply the consistent offsets
-                let offsetX = CGFloat(item.offsetX) * maxOffsetX
-                let offsetY = CGFloat(item.offsetY) * maxOffsetY
-                drawRect.origin.x += offsetX
-                drawRect.origin.y += offsetY
-
-                ctx.draw(cg, in: drawRect)
 
                 guard let outCG = ctx.makeImage() else { return }
                 let outURL = outputDir.appendingPathComponent(String(format: "image_%03d.jpg", idx + 1))
@@ -125,93 +154,132 @@ struct ImageProcessor {
                                      zoomToFill: Bool = false,
                                      background: NSColor = .white) throws -> [URL] {
 
-        let canvasSize = CGSize(width: 1080, height: 1350) // 4:5 portrait
+        // Taking a very different approach with a focus on guaranteeing the border appears
+        // for carousel images
+        
+        // Double the border width as requested
+        let doubleBorderPx = borderPx * 2
+        
         var written: [URL] = []
-
         try FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
-
-        let bg = (background.usingColorSpace(.sRGB) ?? background)
-
+        
         for (idx, item) in images.enumerated() {
             autoreleasepool {
-                guard let cg = loadCGImage(url: item.url) else { return }
-
-                guard let ctx = CGContext(
-                    data: nil,
-                    width: Int(canvasSize.width),
-                    height: Int(canvasSize.height),
-                    bitsPerComponent: 8,
-                    bytesPerRow: 0,
-                    space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-                ) else { return }
-
-                // Fill full canvas with background (this is also the "border" color)
-                ctx.setFillColor(bg.cgColor)
-                ctx.fill(CGRect(origin: .zero, size: canvasSize))
-
-                // Inset content rect to create a border INSIDE the final 1080x1350
-                let inset = CGFloat(max(0, borderPx))
-                let contentRect = CGRect(x: inset,
-                                         y: inset,
-                                         width: canvasSize.width - inset * 2,
-                                         height: canvasSize.height - inset * 2)
-
-                // Compute draw rect (fit vs fill)
-                let srcSize = CGSize(width: cg.width, height: cg.height)
-                let scaled = zoomToFill
-                ? aspectFillSize(source: srcSize, into: contentRect.size)
-                : aspectFitSize(source: srcSize, into: contentRect.size)
-
-                var drawRect = CGRect(
-                    x: contentRect.midX - scaled.width  / 2,
-                    y: contentRect.midY - scaled.height / 2,
-                    width: scaled.width,
-                    height: scaled.height
-                )
+                // Step 1: Generate a bordered version of the image using CIFilter
+                // This provides a completely different pathway for creating the border
                 
-                // Apply repositioning offset using CONSISTENT calculation
-                let imageAspect = srcSize.width / srcSize.height
-                let containerAspect = contentRect.width / contentRect.height
+                // Load the source image
+                guard let sourceImage = CIImage(contentsOf: item.url) else { return }
                 
-                // Calculate max offsets using same logic as views
+                // Create a context for rendering
+                let context = CIContext()
+                
+                // Calculate dimensions for the final image (4:5 aspect ratio)
+                let finalWidth: CGFloat = 1080
+                let finalHeight: CGFloat = 1350
+                
+                // Calculate content area dimensions
+                let borderWidth = CGFloat(doubleBorderPx)
+                let contentWidth = finalWidth - (borderWidth * 2)
+                let contentHeight = finalHeight - (borderWidth * 2)
+                
+                // Create a CIImage for the border color
+                let bgColor = background.usingColorSpace(.sRGB) ?? background
+                let ciColor = CIColor(red: bgColor.redComponent,
+                                     green: bgColor.greenComponent,
+                                     blue: bgColor.blueComponent,
+                                     alpha: bgColor.alphaComponent)
+                
+                // Create a color fill image for the border
+                let colorFill = CIFilter(name: "CIConstantColorGenerator")!
+                colorFill.setValue(ciColor, forKey: kCIInputColorKey)
+                let borderImage = colorFill.outputImage!.cropped(to: CGRect(x: 0, y: 0,
+                                                                          width: finalWidth,
+                                                                          height: finalHeight))
+                
+                // Scale the source image to fit/fill the content area
+                let sourceRect = sourceImage.extent
+                let sourceAspect = sourceRect.width / sourceRect.height
+                let contentAspect = contentWidth / contentHeight
+                
+                let scaleX, scaleY: CGFloat
+                if (zoomToFill) {
+                    scaleX = max(contentWidth / sourceRect.width, contentHeight / sourceRect.height)
+                    scaleY = scaleX
+                } else {
+                    scaleX = min(contentWidth / sourceRect.width, contentHeight / sourceRect.height)
+                    scaleY = scaleX
+                }
+                
+                let scaledImage = sourceImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+                let scaledRect = scaledImage.extent
+                
+                // Calculate centering offset
+                var offsetX = (finalWidth - scaledRect.width) / 2
+                var offsetY = (finalHeight - scaledRect.height) / 2
+                
+                // Apply user position offsets
+                let imageAspect = sourceRect.width / sourceRect.height
+                
+                // Calculate max offsets
                 let maxOffsetX: CGFloat
-                if imageAspect > containerAspect {
-                    let imageWidth = contentRect.height * imageAspect
-                    let overflow = imageWidth - contentRect.width
+                if imageAspect > contentAspect {
+                    let imageWidth = contentHeight * imageAspect
+                    let overflow = imageWidth - contentWidth
                     maxOffsetX = overflow / 2
                 } else {
                     maxOffsetX = 0
                 }
                 
                 let maxOffsetY: CGFloat
-                if imageAspect < containerAspect {
-                    let imageHeight = contentRect.width / imageAspect
-                    let overflow = imageHeight - contentRect.height
+                if imageAspect < contentAspect {
+                    let imageHeight = contentWidth / imageAspect
+                    let overflow = imageHeight - contentHeight
                     maxOffsetY = overflow / 2
                 } else {
                     maxOffsetY = 0
                 }
                 
-                // Apply the consistent offsets
-                let offsetX = CGFloat(item.offsetX) * maxOffsetX
-                let offsetY = CGFloat(item.offsetY) * maxOffsetY
-                drawRect.origin.x += offsetX
-                drawRect.origin.y += offsetY
-
-                ctx.draw(cg, in: drawRect)
-
-                guard let outCG = ctx.makeImage() else { return }
-                let outURL = outputDir.appendingPathComponent(String(format: "image_%03d.jpg", idx + 1))
-                do {
-                    try writeJPEG(outCG, to: outURL, quality: 0.95)
+                offsetX -= CGFloat(item.offsetX) * maxOffsetX
+                offsetY -= CGFloat(item.offsetY) * maxOffsetY
+                
+                // Position the image
+                let centeredImage = scaledImage.transformed(by: CGAffineTransform(translationX: offsetX, y: offsetY))
+                
+                // Create a mask for the content area
+                let contentRect = CGRect(x: borderWidth, y: borderWidth, width: contentWidth, height: contentHeight)
+                let contentMask = CIFilter(name: "CIConstantColorGenerator")!
+                contentMask.setValue(CIColor(red: 1, green: 1, blue: 1, alpha: 1), forKey: kCIInputColorKey)
+                var contentMaskImage = contentMask.outputImage!.cropped(to: contentRect)
+                
+                // Create a composite image
+                var result = borderImage
+                
+                if doubleBorderPx > 0 {
+                    // Use the mask to blend the source image into the content area
+                    let blendFilter = CIFilter(name: "CIBlendWithMask")!
+                    blendFilter.setValue(borderImage, forKey: kCIInputBackgroundImageKey)
+                    blendFilter.setValue(centeredImage, forKey: kCIInputImageKey)
+                    blendFilter.setValue(contentMaskImage, forKey: kCIInputMaskImageKey)
+                    
+                    if let blendedImage = blendFilter.outputImage {
+                        result = blendedImage
+                    }
+                } else {
+                    // No border - just use the centered image
+                    result = centeredImage
+                }
+                
+                // Render to CGImage
+                if let cgImage = context.createCGImage(result, from: CGRect(x: 0, y: 0, width: finalWidth, height: finalHeight)) {
+                    // Convert to JPEG and save
+                    let outURL = outputDir.appendingPathComponent(String(format: "image_%03d.jpg", idx + 1))
+                    try? writeJPEG(cgImage, to: outURL, quality: 0.95)
                     written.append(outURL)
-                } catch {
-                    // skip this image and continue
                 }
             }
         }
-
+        
         return written
     }
 
@@ -276,17 +344,18 @@ struct ImageProcessor {
 
         writer.startSession(atSourceTime: .zero)
 
-        let bg = (background.usingColorSpace(.sRGB) ?? background)
+        // Use 3x border for reels as requested
+        let reelBorderPx = Int(Double(borderPx) * 3.0)
 
         for item in images {
             autoreleasepool {
                 guard let cg = loadCGImage(url: item.url) else { return }
-                guard let pixelBuffer = makePixelBuffer(from: cg,
-                                                        item: item,
-                                                        size: targetSize,
-                                                        borderPx: borderPx,
-                                                        zoomToFill: zoomToFill,
-                                                        background: bg)
+                guard let pixelBuffer = makePixelBufferForReel(from: cg,
+                                                              item: item,
+                                                              size: targetSize,
+                                                              borderPx: reelBorderPx,
+                                                              zoomToFill: zoomToFill,
+                                                              background: background)
                 else { return }
 
                 for _ in 0..<framesPerImage {
@@ -346,14 +415,13 @@ struct ImageProcessor {
         }
     }
 
-    /// Builds a pixel buffer, fills with `background` (also used as the "border"),
-    /// then draws the image inside an inset rect. Uses BGRA + little-endian to avoid blue tint.
-    private static func makePixelBuffer(from cg: CGImage,
-                                        item: ProjectImage,
-                                        size: CGSize,
-                                        borderPx: Int,
-                                        zoomToFill: Bool,
-                                        background: NSColor) -> CVPixelBuffer? {
+    /// Specialized pixel buffer creation for reel videos
+    private static func makePixelBufferForReel(from cg: CGImage,
+                                              item: ProjectImage,
+                                              size: CGSize,
+                                              borderPx: Int,
+                                              zoomToFill: Bool,
+                                              background: NSColor) -> CVPixelBuffer? {
         var pb: CVPixelBuffer?
 
         let attrs: [String: Any] = [
@@ -391,61 +459,88 @@ struct ImageProcessor {
                                   bitmapInfo: bitmapInfo)
         else { return nil }
 
-        // Background/border fill
+        // Convert background to sRGB color space for consistency
         let bg = (background.usingColorSpace(.sRGB) ?? background)
+        
+        // Fill the entire canvas with the border color first
         ctx.setFillColor(bg.cgColor)
         ctx.fill(CGRect(origin: .zero, size: size))
-
-        // Content rect (inset by borderPx)
-        let inset = CGFloat(max(0, borderPx))
-        let contentRect = CGRect(x: inset,
-                                 y: inset,
-                                 width: size.width - inset * 2,
-                                 height: size.height - inset * 2)
-
-        // Aspect fit/fill into contentRect
-        let srcSize = CGSize(width: cg.width, height: cg.height)
-        let scaled = zoomToFill
-            ? aspectFillSize(source: srcSize, into: contentRect.size)
-            : aspectFitSize(source: srcSize, into: contentRect.size)
-
-        var drawRect = CGRect(
-            x: contentRect.midX - scaled.width  / 2,
-            y: contentRect.midY - scaled.height / 2,
-            width: scaled.width,
-            height: scaled.height
-        )
         
-        // Apply repositioning offset using CONSISTENT calculation
-        let imageAspect = srcSize.width / srcSize.height
-        let containerAspect = contentRect.width / contentRect.height
-        
-        // Calculate max offsets using same logic as views
-        let maxOffsetX: CGFloat
-        if imageAspect > containerAspect {
-            let imageWidth = contentRect.height * imageAspect
-            let overflow = imageWidth - contentRect.width
-            maxOffsetX = overflow / 2
+        // Only process border if it's greater than zero
+        if borderPx > 0 {
+            let borderWidth = CGFloat(borderPx)
+            
+            // Create a content rectangle inset by the border width
+            let contentRect = CGRect(
+                x: borderWidth,
+                y: borderWidth,
+                width: size.width - borderWidth * 2,
+                height: size.height - borderWidth * 2
+            )
+            
+            // Calculate scaled image size
+            let srcSize = CGSize(width: cg.width, height: cg.height)
+            let scaled = zoomToFill
+                ? aspectFillSize(source: srcSize, into: contentRect.size)
+                : aspectFitSize(source: srcSize, into: contentRect.size)
+            
+            // Center the image in the content rect
+            var drawRect = CGRect(
+                x: contentRect.midX - scaled.width / 2,
+                y: contentRect.midY - scaled.height / 2,
+                width: scaled.width,
+                height: scaled.height
+            )
+            
+            // Calculate and apply position offsets
+            let imageAspect = srcSize.width / srcSize.height
+            let containerAspect = contentRect.width / contentRect.height
+            
+            let maxOffsetX: CGFloat
+            if imageAspect > containerAspect {
+                let imageWidth = contentRect.height * imageAspect
+                let overflow = imageWidth - contentRect.width
+                maxOffsetX = overflow / 2
+            } else {
+                maxOffsetX = 0
+            }
+            
+            let maxOffsetY: CGFloat
+            if imageAspect < containerAspect {
+                let imageHeight = contentRect.width / imageAspect
+                let overflow = imageHeight - contentRect.height
+                maxOffsetY = overflow / 2
+            } else {
+                maxOffsetY = 0
+            }
+            
+            // Apply offsets
+            let offsetX = CGFloat(item.offsetX) * maxOffsetX
+            let offsetY = CGFloat(item.offsetY) * maxOffsetY
+            drawRect.origin.x += offsetX
+            drawRect.origin.y += offsetY
+            
+            // Draw the image with clipping to content rect
+            ctx.saveGState()
+            ctx.clip(to: contentRect)
+            ctx.draw(cg, in: drawRect)
+            ctx.restoreGState()
         } else {
-            maxOffsetX = 0
+            // No border - draw the image to fit the entire canvas
+            let srcSize = CGSize(width: cg.width, height: cg.height)
+            let scaled = zoomToFill
+                ? aspectFillSize(source: srcSize, into: size)
+                : aspectFitSize(source: srcSize, into: size)
+            
+            let drawRect = CGRect(
+                x: (size.width - scaled.width) / 2,
+                y: (size.height - scaled.height) / 2,
+                width: scaled.width,
+                height: scaled.height
+            )
+            
+            ctx.draw(cg, in: drawRect)
         }
-        
-        let maxOffsetY: CGFloat
-        if imageAspect < containerAspect {
-            let imageHeight = contentRect.width / imageAspect
-            let overflow = imageHeight - contentRect.height
-            maxOffsetY = overflow / 2
-        } else {
-            maxOffsetY = 0
-        }
-        
-        // Apply the consistent offsets
-        let offsetX = CGFloat(item.offsetX) * maxOffsetX
-        let offsetY = CGFloat(item.offsetY) * maxOffsetY
-        drawRect.origin.x += offsetX
-        drawRect.origin.y += offsetY
-
-        ctx.draw(cg, in: drawRect)
 
         return pixelBuffer
     }

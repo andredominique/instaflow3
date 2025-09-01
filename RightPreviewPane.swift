@@ -7,17 +7,22 @@ struct RightPreviewPane: View {
     private let paneWidth: CGFloat = 340
     private let panePadding: CGFloat = 20
 
-    private let phoneCorner: CGFloat = 26
-    private let screenPaddingStory: CGFloat = 0    // For 9:16 aspect
+    private let phoneCorner: CGFloat = 10
+    private let screenPaddingStory: CGFloat = 0
     private let screenPaddingCarousel: CGFloat = 0 // For 4:5 aspect
-
-    private let phoneAspect: CGFloat = 9.0 / 19.0
+    
+    // Vertical shift settings for different modes
+    private let reelVerticalShiftOn: CGFloat = -16    // When toggle is on (Simulate Phone)
+    private let reelVerticalShiftOff: CGFloat = -16     // When toggle is off (Actual Export)
+    
+    private let phoneAspect: CGFloat = 9.0 / 20.0
 
     @State private var currentIndex: Int = 0
     @State private var aspectInitialized = false
     @State private var isPlaying = true
     @State private var slideshowSpeed: Double = 1.0
     @State private var slideshowTimer: Timer?
+    @State private var useModernRatio: Bool = true // Toggle for 9:17.5 vs 9:16 ratio
 
     @AppStorage("selectedAppearance") private var selectedAppearance = "light"
 
@@ -29,8 +34,14 @@ struct RightPreviewPane: View {
     }
 
     private var contentAspect: CGFloat {
-        model.project.aspect.aspect
+        // If it's a reel aspect, use either 9:17.5 or 9:16 based on toggle
+        if isReelAspect {
+            return useModernRatio ? 9.0 / 17.5 : 9.0 / 16.0
+        } else {
+            return model.project.aspect.aspect
+        }
     }
+    
     private var isReelAspect: Bool { model.project.aspect == .story9x16 }
     private var isPostAspect: Bool { abs(model.project.aspect.aspect - (4.0 / 5.0)) < 0.01 }
 
@@ -52,6 +63,12 @@ struct RightPreviewPane: View {
 
     private var screenPaddingCurrent: CGFloat {
         isReelAspect ? screenPaddingStory : screenPaddingCarousel
+    }
+    
+    // Current vertical shift based on toggle state
+    private var currentVerticalShift: CGFloat {
+        if (!isReelAspect) { return 0 }
+        return useModernRatio ? reelVerticalShiftOn : reelVerticalShiftOff
     }
 
     var body: some View {
@@ -88,17 +105,21 @@ struct RightPreviewPane: View {
                                         aspect: contentAspect,
                                         cornerRadius: 0,
                                         zoomToFill: model.project.zoomToFill,
-                                        borderPx: borderPx * 2, // <-- doubled here
+                                        borderPx: borderPx * 2,
                                         borderColor: borderColor,
                                         baseWidth: 1080,
                                         cropEnabled: model.project.cropEnabled,
                                         topPadding: screenPaddingCurrent
                                     )
                                     .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
+                                    // Use the computed currentVerticalShift property
+                                    .offset(y: currentVerticalShift)
                                 }
                             }
                         )
                         .aspectRatio(phoneAspect, contentMode: .fit)
+                        // Clip to prevent content from overflowing outside the phone frame
+                        .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
                 }
                 .frame(height: 600)
                 .frame(maxWidth: paneWidth - panePadding * 2)
@@ -153,6 +174,31 @@ struct RightPreviewPane: View {
 
                 Divider()
                     .padding(.vertical, 6)
+                
+                // Aspect ratio toggle with always-visible labels
+                if isReelAspect {
+                    HStack(spacing: 0) {
+                        // Left side of toggle: "Actual Export"
+                        Text("Actual Export")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.trailing, 8)
+                        
+                        // Toggle in the middle with custom blue style
+                        Toggle("", isOn: $useModernRatio)
+                            .toggleStyle(BlueToggleStyle())
+                            .frame(width: 50)
+                        
+                        // Right side of toggle: "Simulate Phone"
+                        Text("Simulate Phone")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 8)
+                    }
+                    .padding(.bottom, 6)
+                }
 
                 HStack(spacing: 4) {
                     Text("Screen Mode:")
@@ -327,12 +373,44 @@ struct RightPreviewPane: View {
     }
 }
 
+// Custom blue toggle style
+struct BlueToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            
+            ZStack {
+                // Track (both sides blue)
+                Capsule()
+                    .fill(Color.blue.opacity(0.5))
+                    .frame(width: 50, height: 24)
+                
+                // Thumb
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 22, height: 22)
+                    .shadow(radius: 1)
+                    .offset(x: configuration.isOn ? 13 : -13)
+                    .animation(.spring(response: 0.2), value: configuration.isOn)
+                
+                // Hit target for toggle
+                Color.clear
+                    .frame(width: 50, height: 24)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        configuration.isOn.toggle()
+                    }
+            }
+        }
+    }
+}
+
 private struct AspectContent: View {
     let item: ProjectImage?
     let aspect: CGFloat
     let cornerRadius: CGFloat
     let zoomToFill: Bool
-    let borderPx: Int // will now be doubled at call site!
+    let borderPx: Int
     let borderColor: Color
     let baseWidth: CGFloat
     let cropEnabled: Bool
