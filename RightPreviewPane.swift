@@ -15,7 +15,7 @@ struct RightPreviewPane: View {
     private let reelVerticalShiftOn: CGFloat = -16    // When toggle is on (Simulate Phone)
     private let reelVerticalShiftOff: CGFloat = -16     // When toggle is off (Actual Export)
     
-    private let phoneAspect: CGFloat = 9.0 / 20.0
+    private let phoneAspect: CGFloat = 9.0 / 20
 
     @State private var currentIndex: Int = 0
     @State private var aspectInitialized = false
@@ -109,7 +109,8 @@ struct RightPreviewPane: View {
                                         borderColor: borderColor,
                                         baseWidth: 1080,
                                         cropEnabled: model.project.cropEnabled,
-                                        topPadding: screenPaddingCurrent
+                                        topPadding: screenPaddingCurrent,
+                                        forceAspect: true  // Force the aspect ratio to be applied
                                     )
                                     .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
                                     // Use the computed currentVerticalShift property
@@ -415,6 +416,7 @@ private struct AspectContent: View {
     let baseWidth: CGFloat
     let cropEnabled: Bool
     let topPadding: CGFloat
+    let forceAspect: Bool // New parameter to force aspect ratio
 
     @State private var image: NSImage?
     @State private var imageAspect: CGFloat = 1.0
@@ -506,7 +508,8 @@ private struct AspectContent: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        .aspectRatio(cropEnabled ? aspect : (imageAspect > 0 ? imageAspect : 1.0), contentMode: .fit)
+        // Always use the specified aspect ratio when forceAspect is true
+        .aspectRatio(cropEnabled || forceAspect ? aspect : (imageAspect > 0 ? imageAspect : 1.0), contentMode: .fit)
         .task { load() }
         .onChange(of: item?.url) { _, _ in load() }
     }
