@@ -8,7 +8,6 @@ struct RightPreviewPane: View {
     private let panePadding: CGFloat = 20
 
     private let phoneCorner: CGFloat = 26
-    private let screenCorner: CGFloat = 14
     private let screenPaddingStory: CGFloat = 0    // For 9:16 aspect
     private let screenPaddingCarousel: CGFloat = 0 // For 4:5 aspect
 
@@ -82,27 +81,22 @@ struct RightPreviewPane: View {
                             .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: screenCorner, style: .continuous)
-                                .fill(Color.clear)
-                                .overlay {
-                                    GeometryReader { containerGeo in
-                                        VStack {
-                                            AspectContent(
-                                                item: currentItem,
-                                                aspect: contentAspect,
-                                                cornerRadius: 0,
-                                                zoomToFill: model.project.zoomToFill,
-                                                borderPx: borderPx,
-                                                borderColor: borderColor,
-                                                baseWidth: 1080,
-                                                cropEnabled: model.project.cropEnabled,
-                                                topPadding: screenPaddingCurrent
-                                            )
-                                            .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
-                                        }
-                                    }
+                            GeometryReader { containerGeo in
+                                VStack {
+                                    AspectContent(
+                                        item: currentItem,
+                                        aspect: contentAspect,
+                                        cornerRadius: 0,
+                                        zoomToFill: model.project.zoomToFill,
+                                        borderPx: borderPx * 2, // <-- doubled here
+                                        borderColor: borderColor,
+                                        baseWidth: 1080,
+                                        cropEnabled: model.project.cropEnabled,
+                                        topPadding: screenPaddingCurrent
+                                    )
+                                    .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
                                 }
-                                .clipShape(RoundedRectangle(cornerRadius: screenCorner, style: .continuous))
+                            }
                         )
                         .aspectRatio(phoneAspect, contentMode: .fit)
                 }
@@ -117,7 +111,7 @@ struct RightPreviewPane: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(slides.isEmpty || slides.count <= 1)
-                    .padding(.leading, 8) // Added left padding
+                    .padding(.leading, 8)
 
                     Spacer()
 
@@ -153,7 +147,7 @@ struct RightPreviewPane: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(slides.isEmpty || slides.count <= 1)
-                    .padding(.trailing, 8) // Added right padding
+                    .padding(.trailing, 8)
                 }
                 .padding(.top, 6)
 
@@ -338,7 +332,7 @@ private struct AspectContent: View {
     let aspect: CGFloat
     let cornerRadius: CGFloat
     let zoomToFill: Bool
-    let borderPx: Int
+    let borderPx: Int // will now be doubled at call site!
     let borderColor: Color
     let baseWidth: CGFloat
     let cropEnabled: Bool
@@ -384,8 +378,10 @@ private struct AspectContent: View {
 
     var body: some View {
         GeometryReader { geo in
+            // Border as background, image is padded inside
             ZStack {
-                // Background is now handled in parent container. Remove all BG logic here.
+                RoundedRectangle(cornerRadius: 0, style: .continuous)
+                    .fill(borderColor)
                 Group {
                     if let img = image, let item = item {
                         if cropEnabled {
@@ -401,12 +397,9 @@ private struct AspectContent: View {
                                         x: zoomToFill ? CGFloat(item.offsetX) * maxOffsetX(for: CGSize(width: innerW, height: innerH)) : 0,
                                         y: zoomToFill ? CGFloat(item.offsetY) * maxOffsetY(for: CGSize(width: innerW, height: innerH)) : 0
                                     )
-                                    .frame(width: innerW, height: innerH)
+                                    .frame(width: innerW - maxPad * 2, height: innerH - maxPad * 2)
                                     .clipped()
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .stroke(borderColor, lineWidth: CGFloat(borderPx) * 1.2)
-                                    )
+                                    .padding(maxPad)
                             }
                             .frame(width: innerW, height: innerH)
                             .position(x: geo.size.width / 2, y: geo.size.height / 2)
@@ -416,10 +409,8 @@ private struct AspectContent: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(borderColor, lineWidth: CGFloat(borderPx) * 1.2)
-                                )
+                                .padding(CGFloat(borderPx) * 1.2)
+                                .background(Color.clear)
                                 .padding(.top, topPadding)
                         }
                     } else if item != nil {
