@@ -23,6 +23,7 @@ struct RightPreviewPane: View {
     @State private var slideshowSpeed: Double = 1.0
     @State private var slideshowTimer: Timer?
     @State private var useModernRatio: Bool = true // Toggle for 9:17.5 vs 9:16 ratio
+    @State private var simulateCarouselUI: Bool = true // Toggle for showing carousel UI elements
 
     @AppStorage("selectedAppearance") private var selectedAppearance = "light"
 
@@ -70,6 +71,16 @@ struct RightPreviewPane: View {
         if (!isReelAspect) { return 0 }
         return useModernRatio ? reelVerticalShiftOn : reelVerticalShiftOff
     }
+    
+    // Show Instagram Reel UI elements based on original toggle
+    private var showReelUI: Bool {
+        return isReelAspect && useModernRatio
+    }
+    
+    // Show Instagram Carousel UI elements based on new toggle
+    private var showCarouselUI: Bool {
+        return isPostAspect && simulateCarouselUI
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -83,11 +94,13 @@ struct RightPreviewPane: View {
                         .fill(Color.clear)
                         .background(
                             Group {
-                                if isReelAspect {
+                                if isReelAspect && showReelUI {
+                                    // Show REELBG when Simulate Phone is active for reel
                                     Image("REELBG")
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
-                                } else if isPostAspect {
+                                } else if isPostAspect && showCarouselUI {
+                                    // Show POSTBG when Simulate Phone is active for carousel
                                     Image("POSTBG")
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
@@ -115,6 +128,17 @@ struct RightPreviewPane: View {
                                     .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
                                     // Use the computed currentVerticalShift property
                                     .offset(y: currentVerticalShift)
+                                }
+                            }
+                        )
+                        // Add Instagram Reel overlay ONLY when appropriate
+                        .overlay(
+                            Group {
+                                if showReelUI {
+                                    Image("INSTAREELOVERLAY")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .allowsHitTesting(false) // Make sure it doesn't interfere with interactions
                                 }
                             }
                         )
@@ -176,7 +200,7 @@ struct RightPreviewPane: View {
                 Divider()
                     .padding(.vertical, 6)
                 
-                // Aspect ratio toggle with always-visible labels
+                // Reel aspect toggle with the original functionality
                 if isReelAspect {
                     HStack(spacing: 0) {
                         // Left side of toggle: "Actual Export"
@@ -188,6 +212,31 @@ struct RightPreviewPane: View {
                         
                         // Toggle in the middle with custom blue style
                         Toggle("", isOn: $useModernRatio)
+                            .toggleStyle(BlueToggleStyle())
+                            .frame(width: 50)
+                        
+                        // Right side of toggle: "Simulate Phone"
+                        Text("Simulate Phone")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 8)
+                    }
+                    .padding(.bottom, 6)
+                }
+                
+                // Carousel aspect toggle (new)
+                if isPostAspect {
+                    HStack(spacing: 0) {
+                        // Left side of toggle: "Actual Export"
+                        Text("Actual Export")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.trailing, 8)
+                        
+                        // Toggle in the middle with custom blue style
+                        Toggle("", isOn: $simulateCarouselUI)
                             .toggleStyle(BlueToggleStyle())
                             .frame(width: 50)
                         

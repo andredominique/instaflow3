@@ -47,18 +47,19 @@ var controls: some View {
                 }
             }
             
-            // NEW: Background color selector with quick options - RESTORED TO VISIBLE
+            // NEW: Background color selector - ACTIVE ONLY WHEN ZOOM TO FILL IS DISABLED
             HStack(spacing: 4) {
                 Text("Background:")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 80) // Ensures 'Background:' text stays intact when resizing
+                    .opacity(model.project.zoomToFill ? 0.5 : 1) // Fade out when zoom to fill is enabled
                 
                 // Quick color buttons and custom picker with REDUCED SIZE
                 HStack(spacing: 2) {
                     ForEach(ColorOption.allCases.filter { $0 != .custom }, id: \ .self) { option in
                         Button {
-                            if selectedColorOption != option || backgroundColor != option.color {
+                            if !model.project.zoomToFill && (selectedColorOption != option || backgroundColor != option.color) {
                                 selectedColorOption = option
                                 backgroundColor = option.color
                                 // Sync to global project color
@@ -89,12 +90,16 @@ var controls: some View {
                         }
                         .buttonStyle(.plain)
                         .help(option.title)
+                        .opacity(model.project.zoomToFill ? 0.5 : 1) // Fade out when zoom to fill is enabled
+                        .disabled(model.project.zoomToFill) // Disable when zoom to fill is enabled
                     }
 
                     // Custom color picker button with paintpalette icon - DIRECT MAC COLOR PICKER
                     Button {
-                        selectedColorOption = .custom
-                        openMacColorPicker()
+                        if !model.project.zoomToFill {
+                            selectedColorOption = .custom
+                            openMacColorPicker()
+                        }
                     } label: {
                         ZStack {
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -118,9 +123,10 @@ var controls: some View {
                     }
                     .buttonStyle(.plain)
                     .help("Custom color")
+                    .opacity(model.project.zoomToFill ? 0.5 : 1) // Fade out when zoom to fill is enabled
+                    .disabled(model.project.zoomToFill) // Disable when zoom to fill is enabled
                 }
-                // REMOVED disabled and opacity modifiers to keep always active
-                .help("Background color for images and borders")
+                .help(model.project.zoomToFill ? "Background color not available when Zoom to Fill is enabled" : "Background color for images and borders")
             }
             
             // NEW: Border width slider - HIDDEN BUT STILL FUNCTIONAL
