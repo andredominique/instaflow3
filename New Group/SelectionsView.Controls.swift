@@ -47,7 +47,7 @@ var controls: some View {
                 }
             }
             
-            // NEW: Background color selector with quick options - ALWAYS ACTIVE
+            // NEW: Background color selector with quick options - RESTORED TO VISIBLE
             HStack(spacing: 4) {
                 Text("Background:")
                     .font(.subheadline)
@@ -123,12 +123,13 @@ var controls: some View {
                 .help("Background color for images and borders")
             }
             
-            // NEW: Border width slider
+            // NEW: Border width slider - HIDDEN BUT STILL FUNCTIONAL
             HStack(spacing: 4) {
                 Text("Border:")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 60) // Ensures 'Border:' text stays intact when resizing
+                    .opacity(0) // Hide the text but keep it in the layout
                 
                 Slider(
                     value: $borderWidth,
@@ -145,12 +146,16 @@ var controls: some View {
                 }
                 .frame(width: 80)
                 .help("Add border around images")
+                .opacity(0) // Hide the slider but keep it functional
                 
                 Text("\(Int(borderWidth))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 20, alignment: .trailing)
+                    .opacity(0) // Hide the text but keep it in the layout
             }
+            .frame(width: 0, height: 0) // Collapse the frame but keep it in the view hierarchy
+            .clipped() // Ensure it doesn't take up visual space
             
             Text("Aspect:")
                 .font(.subheadline)
