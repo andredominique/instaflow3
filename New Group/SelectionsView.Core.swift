@@ -7,7 +7,9 @@ import AppKit
 
 struct SelectionsView: View {
     @EnvironmentObject var model: AppModel
-    @State var autoSendToEnd = true
+    // Store autoSendToEnd preference in AppStorage to persist between views
+    @AppStorage("autoSendToEnd") var autoSendToEnd: Bool = true
+    
     @State var colorPanelObserver: NSObjectProtocol?
     @State var borderWidth: Double = 0.0
     // Add this line with your other @State variables (around line 85)
@@ -19,10 +21,20 @@ struct SelectionsView: View {
     @AppStorage("selectedAppearance") var selectedAppearance: String = "light"
     @Environment(\.colorScheme) var systemColorScheme
     
+    // Store showDisabled preference in AppStorage to persist between views
+    @AppStorage("showDisabledImages") var showDisabled: Bool = true
+    
+    // Store the selected color option name in AppStorage
+    @AppStorage("selectedColorOptionName") var selectedColorOptionName: String = "black"
+    
+    // Store RGB components of custom color in AppStorage
+    @AppStorage("customColorRed") var customColorRed: Double = 0.0
+    @AppStorage("customColorGreen") var customColorGreen: Double = 0.0
+    @AppStorage("customColorBlue") var customColorBlue: Double = 0.0
+    
     // ... rest of your existing properties
     
     // UI state
-    @State var showDisabled = true
     @State var draggingID: UUID? = nil
     @State var columns: Int = 5
     @State var disabledOverlayOpacity: Double = 0.5
@@ -46,7 +58,9 @@ struct SelectionsView: View {
             model.project.carouselBorderColor = colorData
         }
     }
-    @State var selectedColorOption: ColorOption = .black // Track which option is selected
+    
+    // Store selectedColorOption as a State variable, and sync with AppStorage when it changes
+    @State var selectedColorOption: ColorOption = .black
     
     // SIMPLIFIED: Direct reposition sheet state
     @State var repositionItem: ProjectImage? = nil
@@ -94,7 +108,6 @@ struct SelectionsView: View {
             .sorted { $0.orderIndex < $1.orderIndex }
             .map { $0.id }
     }
-
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -120,6 +133,9 @@ struct SelectionsView: View {
                 sortImagesByFolderThenName()
                 captureOriginalOrderIfNeeded()
             }
+            
+            // Initialize background color and selectedColorOption from stored preferences
+            initColorFromPreferences()
             
             setupShiftKeyMonitoring()
             setupUndoRedoKeyMonitoring()
@@ -148,6 +164,18 @@ struct SelectionsView: View {
         }
         .onChange(of: model.project.images.map(\.id)) { _, _ in
             captureOriginalOrderIfNeeded(forceIfIDsChanged: true)
+        }
+        // Add listener for selectedColorOption changes to save to AppStorage
+        .onChange(of: selectedColorOption) { _, newValue in
+            // Save the color option name
+            switch newValue {
+            case .black:
+                selectedColorOptionName = "black"
+            case .white:
+                selectedColorOptionName = "white"
+            case .custom:
+                selectedColorOptionName = "custom"
+            }
         }
         .alert("Are you sure you want to reset order?", isPresented: $showResetConfirm) {
             Button("Cancel", role: .cancel) {}
@@ -183,6 +211,28 @@ struct SelectionsView: View {
             }
         }
         .preferredColorScheme(currentAppearance)
+    }
+
+    // Initialize the background color from saved preferences
+    private func initColorFromPreferences() {
+        // First set the selectedColorOption based on the saved name
+        switch selectedColorOptionName {
+        case "black":
+            selectedColorOption = .black
+            backgroundColor = .black
+        case "white":
+            selectedColorOption = .white
+            backgroundColor = .white
+        case "custom":
+            selectedColorOption = .custom
+            backgroundColor = Color(red: customColorRed, green: customColorGreen, blue: customColorBlue)
+        default:
+            selectedColorOption = .black
+            backgroundColor = .black
+        }
+        
+        // Sync to project on initialization
+        syncBackgroundColorToProject()
     }
 
     // MARK: - Header
@@ -447,11 +497,22 @@ struct SelectionsView: View {
             object: colorPanel,
             queue: .main
         ) { _ in
-            backgroundColor = Color(nsColor: colorPanel.color)
+            let nsColor = colorPanel.color
+            backgroundColor = Color(nsColor: nsColor)
+            
+            // Save the custom color components to AppStorage
+            customColorRed = Double(nsColor.redComponent)
+            customColorGreen = Double(nsColor.greenComponent)
+            customColorBlue = Double(nsColor.blueComponent)
+            
+            // Update the selected option
             selectedColorOption = .custom
+            selectedColorOptionName = "custom"
+            
+            // Sync to project
             syncBackgroundColorToProject()
-            let ns = NSColor(backgroundColor)
-            print("DEBUG: Set global color to R:", ns.redComponent, "G:", ns.greenComponent, "B:", ns.blueComponent, "Aspect:", model.project.aspect)
+            
+            print("DEBUG: Set global color to R:", nsColor.redComponent, "G:", nsColor.greenComponent, "B:", nsColor.blueComponent, "Aspect:", model.project.aspect)
             print("DEBUG: model.project.reelBorderColor:", model.project.reelBorderColor)
             print("DEBUG: model.project.carouselBorderColor:", model.project.carouselBorderColor)
         }

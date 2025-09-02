@@ -17,6 +17,7 @@ struct FinalPreviewView: View {
     @State private var progress: Double = 0.0
     @State private var statusMessage: String = ""
     @State private var openInFinderURL: URL? = nil
+    @State private var hasExported = false // Track if any export button has been pressed
 
     // Persisted output dir
     @State private var lastOutputDir: URL? = nil
@@ -214,24 +215,48 @@ struct FinalPreviewView: View {
                         // All buttons in one row
                         HStack(spacing: 10) {
                             if model.project.cropEnabled {
-                                Button { Task { await runExport(square: false, carousel: true, reel: false) } } label: {
+                                Button {
+                                    Task {
+                                        await runExport(square: false, carousel: true, reel: false)
+                                    }
+                                } label: {
                                     Label("4:5 Carousel", systemImage: "square.grid.2x2")
                                 }
+                                .buttonStyle(.borderedProminent) // Use prominent style for blue color
+                                .tint(hasExported ? Color(NSColor.systemGray) : .blue)
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
 
-                                Button { Task { await runExport(square: false, carousel: false, reel: true) } } label: {
+                                Button {
+                                    Task {
+                                        await runExport(square: false, carousel: false, reel: true)
+                                    }
+                                } label: {
                                     Label("9:16 Reel", systemImage: "film")
                                 }
+                                .buttonStyle(.borderedProminent) // Use prominent style for blue color
+                                .tint(hasExported ? Color(NSColor.systemGray) : .blue)
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
 
-                                Button { Task { await runExport(square: false, carousel: true, reel: true) } } label: {
+                                Button {
+                                    Task {
+                                        await runExport(square: false, carousel: true, reel: true)
+                                    }
+                                } label: {
                                     Label("Both", systemImage: "square.grid.2x2.fill")
                                 }
+                                .buttonStyle(.borderedProminent) // Use prominent style for blue color
+                                .tint(hasExported ? Color(NSColor.systemGray) : .blue)
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
                             } else {
-                                Button { Task { await runExport(square: false, carousel: false, reel: false) } } label: {
+                                Button {
+                                    Task {
+                                        await runExport(square: false, carousel: false, reel: false)
+                                    }
+                                } label: {
                                     Label("Original Images", systemImage: "photo.on.rectangle.angled")
                                 }
+                                .buttonStyle(.borderedProminent) // Use prominent style for blue color
+                                .tint(hasExported ? Color(NSColor.systemGray) : .blue)
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
                             }
 
@@ -366,6 +391,9 @@ struct FinalPreviewView: View {
                     model.project.saveCaptionTxt = false
                 }
             }
+            
+            // Reset hasExported when opening the view
+            hasExported = false
         }
     }
 
@@ -405,6 +433,11 @@ struct FinalPreviewView: View {
         guard !enabledImagesOrdered.isEmpty else {
             statusMessage = "No enabled images to export."
             return
+        }
+
+        // Set hasExported to true once any export button is pressed
+        await MainActor.run {
+            hasExported = true
         }
 
         isExporting = true
