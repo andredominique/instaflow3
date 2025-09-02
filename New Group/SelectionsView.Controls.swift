@@ -176,7 +176,7 @@ var controls: some View {
                         Button {
                             model.setAspectRatio(.feed4x5)
                         } label: {
-                            Text("4:5")
+                            Text("4:5 Carousel")
                                 .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -195,7 +195,7 @@ var controls: some View {
                         Button {
                             model.setAspectRatio(.feed4x5)
                         } label: {
-                            Text("4:5")
+                            Text("4:5 Carousel")
                                 .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(BorderedButtonStyle())
@@ -210,7 +210,7 @@ var controls: some View {
                         Button {
                             model.setAspectRatio(.story9x16)
                         } label: {
-                            Text("9:16")
+                            Text("9:16 Reel")
                                 .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -229,7 +229,7 @@ var controls: some View {
                         Button {
                             model.setAspectRatio(.story9x16)
                         } label: {
-                            Text("9:16")
+                            Text("9:16 Reel")
                                 .frame(minWidth: 40) // Ensures button stays intact when resizing
                         }
                         .buttonStyle(BorderedButtonStyle())

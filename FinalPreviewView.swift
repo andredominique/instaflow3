@@ -142,17 +142,17 @@ struct FinalPreviewView: View {
                         HStack(spacing: 10) {
                             if model.project.cropEnabled {
                                 Button { Task { await runExport(square: false, carousel: true, reel: false) } } label: {
-                                    Label("Export Carousel", systemImage: "square.grid.2x2")
+                                    Label("Export 4:5 Carousel", systemImage: "square.grid.2x2")
                                 }
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
 
                                 Button { Task { await runExport(square: false, carousel: false, reel: true) } } label: {
-                                    Label("Export Reel", systemImage: "film")
+                                    Label("Export 9:16 Reel", systemImage: "film")
                                 }
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
 
                                 Button { Task { await runExport(square: false, carousel: true, reel: true) } } label: {
-                                    Label("Export All", systemImage: "square.grid.2x2.fill")
+                                    Label("Export Both", systemImage: "square.grid.2x2.fill")
                                 }
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
                             } else {
