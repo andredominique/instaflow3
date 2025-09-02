@@ -1,11 +1,12 @@
 import Foundation
 
 // MARK: - Batching Extensions for OpenAIService
-private extension OpenAIService {
+extension OpenAIService {
     // Configuration for batching
     struct BatchConfig {
         static let batchSize = 6 // Process 6 images at a time
         static let delayBetweenBatches: UInt64 = 500_000_000 // 0.5 second delay
+        static let networkTimeout: TimeInterval = 120.0 // 120 seconds timeout
         
         // Progress scaling helpers
         static func scaledProgress(forImage imageIndex: Int, totalImages: Int, batchProgress: Double) -> Double {
@@ -14,7 +15,7 @@ private extension OpenAIService {
         }
     }
     
-    // Helper to split URLs into batches
+    // Helper to split URLs into batches with improved memory management
     func processBatchedImages(
         urls: [URL],
         maxSize: CGFloat,
@@ -35,40 +36,57 @@ private extension OpenAIService {
         for (batchIndex, batch) in batches.enumerated() {
             print("[OpenAIService] Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) images")
             
-            // Process each image in the current batch
-            for (imageIndexInBatch, url) in batch.enumerated() {
-                let overallImageIndex = batchIndex * BatchConfig.batchSize + imageIndexInBatch
+            // Use autoreleasepool for each batch to manage memory better
+            let batchResults = try await autoreleasepool {
+                var batchParts: [MMPart] = []
                 
-                do {
-                    if let dataURL = try Self.encodeImageDataURLWithThrows(
-                        at: url,
-                        maxSize: maxSize,
-                        quality: quality,
-                        progressHandler: { batchProgress in
-                            // Scale the progress relative to overall process
-                            let scaledProgress = BatchConfig.scaledProgress(
-                                forImage: overallImageIndex,
-                                totalImages: totalImages,
-                                batchProgress: batchProgress
-                            )
-                            uploadProgressHandler(url, scaledProgress)
-                        }
-                    ) {
-                        imageParts.append(.imageURL(.init(url: dataURL)))
-                        uploadCompleteHandler(url)
+                // Process each image in the current batch
+                for (imageIndexInBatch, url) in batch.enumerated() {
+                    let overallImageIndex = batchIndex * BatchConfig.batchSize + imageIndexInBatch
+                    print("[OpenAIService] Processing image \(overallImageIndex + 1)/\(totalImages): \(url.lastPathComponent)")
+                    
+                    do {
+                        // Report initial progress for this image
+                        let initialProgress = BatchConfig.scaledProgress(
+                            forImage: overallImageIndex, 
+                            totalImages: totalImages, 
+                            batchProgress: 0.1
+                        )
+                        uploadProgressHandler(url, initialProgress)
                         
-                        // Memory cleanup hint
-                        autoreleasepool { }
-                    } else {
-                        let error = NSError(domain: "OpenAIService", code: 100,
-                            userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
+                        if let dataURL = try Self.encodeImageDataURLWithThrows(
+                            at: url,
+                            maxSize: maxSize,
+                            quality: quality,
+                            progressHandler: { batchProgress in
+                                // Scale the progress relative to overall process
+                                let scaledProgress = BatchConfig.scaledProgress(
+                                    forImage: overallImageIndex,
+                                    totalImages: totalImages,
+                                    batchProgress: batchProgress
+                                )
+                                uploadProgressHandler(url, scaledProgress)
+                            }
+                        ) {
+                            batchParts.append(.imageURL(.init(url: dataURL)))
+                            uploadCompleteHandler(url)
+                            print("[OpenAIService] ✅ Successfully processed image \(overallImageIndex + 1)")
+                        } else {
+                            let error = NSError(domain: "OpenAIService", code: 100,
+                                userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
+                            print("[OpenAIService] ❌ Failed to encode image \(overallImageIndex + 1): returned nil")
+                            uploadErrorHandler(url, error)
+                        }
+                    } catch {
+                        print("[OpenAIService] ❌ Failed to process image \(overallImageIndex + 1): \(error.localizedDescription)")
                         uploadErrorHandler(url, error)
                     }
-                } catch {
-                    print("[OpenAIService] Failed to process image: \(error.localizedDescription)")
-                    uploadErrorHandler(url, error)
                 }
+                
+                return batchParts
             }
+            
+            imageParts.append(contentsOf: batchResults)
             
             // Add delay between batches (except for the last batch)
             if batchIndex < batches.count - 1 {
