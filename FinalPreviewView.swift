@@ -10,6 +10,7 @@ func snapToFrameDuration(_ seconds: Double, fps: Int) -> Double {
 
 struct FinalPreviewView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - UI state
     @State private var isExporting = false
@@ -42,152 +43,234 @@ struct FinalPreviewView: View {
     // Helpers: ColorData → SwiftUI Color
     private var reelBGColor: Color { model.project.reelBorderColor.swiftUIColor }
     private var carouselBGColor: Color { model.project.carouselBorderColor.swiftUIColor }
+    
+    // Height equalizer for boxes
+    @State private var slideshowBoxHeight: CGFloat = 0
+    @State private var exportBoxHeight: CGFloat = 0
+    
+    // Custom light/dark-aware background color for export box
+    private var exportBoxBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color(NSColor.controlBackgroundColor).opacity(0.5)
+            : Color(NSColor.controlBackgroundColor).opacity(0.9)
+    }
+    
+    // Regular background color for other boxes
+    private var regularBoxBackgroundColor: Color {
+        Color(NSColor.controlBackgroundColor).opacity(0.7)
+    }
 
     var body: some View {
         ScrollView(.vertical) {
             VStack(spacing: 12) {
-
-                // Top title
-                HStack {
-                    Text("Slideshow Pace").font(.title3).bold()
-                    Spacer()
-                }
-                .padding(.top, 6)
-
-                // Show settings only when crop is enabled
-                if model.project.cropEnabled {
-                    // Reel settings (Tap Tempo embedded)
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 10) {
-                            // Tap Tempo (writes to model.project.reelSecondsPerImage)
-                            TapTempoControl(embedded: true, hideHeader: true, showReset: false)
-                                .environmentObject(model)
-                                .environment(\.font, .body)
-                        }
-                        .controlSize(.small)
-                    }
-                    .onChange(of: model.project.reelSecondsPerImage) { _, newVal in
-                        // Clamp + snap, regardless of whether value came from Tap Tempo or elsewhere
-                        let clamped = min(max(newVal, 0.1), 10.0)
-                        let snapped = snapToFrameDuration(clamped, fps: reelFPS)
-                        if snapped != model.project.reelSecondsPerImage {
-                            model.project.reelSecondsPerImage = snapped
-                        }
-                        // Notify RightPreviewPane to update slideshow speed
-                        NotificationCenter.default.post(name: Notification.Name("TapTempoChanged"), object: snapped)
-                    }
-                } else {
-                    // Show message when crop is disabled
-                    GroupBox {
-                        VStack(spacing: 16) {
-                            Image(systemName: "crop.rotate")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.secondary)
-                            
-                            Text("Crop Mode Disabled")
-                                .font(.headline)
-                            
-                            Text("Export settings are only available when crop mode is enabled. Enable crop mode in the Preview pane to access aspect ratio settings, borders, and zoom options.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.vertical, 20)
-                    }
-                }
-
-                // —— Export section: Output location + caption settings + buttons ——
-                HStack {
-                    Text("Export").font(.title3).bold()
-                    Spacer()
-                }
-
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 14) {
-                        // Output location row
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Output location").font(.headline)
-                                Text(model.project.outputPath?.path(percentEncoded: false) ?? "Not set")
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                            }
+                
+                // Top row with two boxes side by side
+                HStack(alignment: .top, spacing: 12) {
+                    // Left side: Slideshow Pace
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Top title
+                        HStack {
+                            Text("Slideshow Pace").font(.title3).bold()
                             Spacer()
-                            Button { pickOutputFolder() } label: {
-                                Label(model.project.outputPath == nil ? "Choose…" : "Change…", systemImage: "folder")
-                            }
                         }
-
-                        // Caption settings
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Caption Settings").font(.headline)
-                                Spacer()
-                                Button {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(model.project.caption, forType: .string)
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
+                        
+                        // Show settings only when crop is enabled
+                        if model.project.cropEnabled {
+                            // Reel settings (Tap Tempo embedded)
+                            GroupBox {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    // Tap Tempo (writes to model.project.reelSecondsPerImage)
+                                    TapTempoControl(embedded: true, hideHeader: true, showReset: false)
+                                        .environmentObject(model)
+                                        .environment(\.font, .body)
                                 }
-                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .padding(10) // Add 10px padding
                             }
-
-                            Toggle("Save as .txt file", isOn: $model.project.saveCaptionTxt)
-                                .toggleStyle(.switch)
-                                .font(.body)
-                                .help("When exporting, also write caption.txt into the output folder.")
+                            .background(regularBoxBackgroundColor) // Regular background color
+                            .background(GeometryReader { geo -> Color in
+                                DispatchQueue.main.async {
+                                    slideshowBoxHeight = geo.size.height
+                                }
+                                return Color.clear
+                            })
+                            .onChange(of: model.project.reelSecondsPerImage) { _, newVal in
+                                // Clamp + snap, regardless of whether value came from Tap Tempo or elsewhere
+                                let clamped = min(max(newVal, 0.1), 10.0)
+                                let snapped = snapToFrameDuration(clamped, fps: reelFPS)
+                                if snapped != model.project.reelSecondsPerImage {
+                                    model.project.reelSecondsPerImage = snapped
+                                }
+                                // Notify RightPreviewPane to update slideshow speed
+                                NotificationCenter.default.post(name: Notification.Name("TapTempoChanged"), object: snapped)
+                            }
+                        } else {
+                            // Show message when crop is disabled
+                            GroupBox {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "crop.rotate")
+                                        .font(.system(size: 48))
+                                        .foregroundStyle(.secondary)
+                                    
+                                    Text("Crop Mode Disabled")
+                                        .font(.headline)
+                                    
+                                    Text("Export settings are only available when crop mode is enabled. Enable crop mode in the Preview pane to access aspect ratio settings, borders, and zoom options.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.vertical, 20)
+                                .padding(10) // Add 10px padding
+                            }
+                            .background(regularBoxBackgroundColor) // Regular background color
+                            .background(GeometryReader { geo -> Color in
+                                DispatchQueue.main.async {
+                                    slideshowBoxHeight = geo.size.height
+                                }
+                                return Color.clear
+                            })
                         }
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Right side: Export Settings
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Updated title
+                        HStack {
+                            Text("Export Settings").font(.title3).bold()
+                            Spacer()
+                        }
+                        
+                        GroupBox {
+                            VStack(alignment: .leading, spacing: 14) {
+                                // Output location row
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("Output location").font(.headline)
+                                        Text(model.project.outputPath?.path(percentEncoded: false) ?? "Not set")
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                    Spacer()
+                                    Button { pickOutputFolder() } label: {
+                                        Label(model.project.outputPath == nil ? "Choose…" : "Change…", systemImage: "folder")
+                                    }
+                                }
 
-                        // Export buttons - simplified (removed square, kept carousel and reel)
+                                // Add padding above caption settings
+                                Spacer().frame(height: 8)
+                                
+                                // Caption settings
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("Caption Settings").font(.headline)
+                                        Spacer()
+                                    }
+                                    
+                                    // Reorganized caption controls in a single row
+                                    HStack(spacing: 16) {
+                                        Button {
+                                            NSPasteboard.general.clearContents()
+                                            NSPasteboard.general.setString(model.project.caption, forType: .string)
+                                        } label: {
+                                            Label("Copy", systemImage: "doc.on.doc")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        
+                                        Toggle("Save as .txt file", isOn: $model.project.saveCaptionTxt)
+                                            .toggleStyle(.switch)
+                                            .font(.body)
+                                            .help("When exporting, also write caption.txt into the output folder.")
+                                    }
+                                }
+                                
+                                // Add a spacer to make heights equal
+                                Spacer()
+                            }
+                            .padding(10) // Add 10px padding
+                        }
+                        .background(exportBoxBackgroundColor) // More distinct background color for export box
+                        .background(GeometryReader { geo -> Color in
+                            DispatchQueue.main.async {
+                                exportBoxHeight = geo.size.height
+                            }
+                            return Color.clear
+                        })
+                        .frame(height: max(slideshowBoxHeight, exportBoxHeight) > 0 ? max(slideshowBoxHeight, exportBoxHeight) : nil)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                
+                // Export buttons section - with title inside the box
+                GroupBox {
+                    VStack(spacing: 12) {
+                        // Title inside the box
+                        HStack {
+                            Text("Export").font(.title3).bold()
+                            Spacer()
+                        }
+                        
+                        // All buttons in one row
                         HStack(spacing: 10) {
                             if model.project.cropEnabled {
                                 Button { Task { await runExport(square: false, carousel: true, reel: false) } } label: {
-                                    Label("Export 4:5 Carousel", systemImage: "square.grid.2x2")
+                                    Label("4:5 Carousel", systemImage: "square.grid.2x2")
                                 }
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
 
                                 Button { Task { await runExport(square: false, carousel: false, reel: true) } } label: {
-                                    Label("Export 9:16 Reel", systemImage: "film")
+                                    Label("9:16 Reel", systemImage: "film")
                                 }
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
 
                                 Button { Task { await runExport(square: false, carousel: true, reel: true) } } label: {
-                                    Label("Export Both", systemImage: "square.grid.2x2.fill")
+                                    Label("Both", systemImage: "square.grid.2x2.fill")
                                 }
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
                             } else {
                                 Button { Task { await runExport(square: false, carousel: false, reel: false) } } label: {
-                                    Label("Export Original Images", systemImage: "photo.on.rectangle.angled")
+                                    Label("Original Images", systemImage: "photo.on.rectangle.angled")
                                 }
                                 .disabled(isExporting || model.project.outputPath == nil || enabledImagesOrdered.isEmpty)
                             }
 
                             Spacer()
-
-                            // Open in Finder (if available)
-                            if let openURL = openInFinderURL {
-                                Button {
-                                    NSWorkspace.shared.activateFileViewerSelecting([openURL])
-                                } label: {
-                                    Label("Open in Finder", systemImage: "folder.fill")
-                                }
-                            }
-
-                            // Send to WhatsApp
+                            
+                            // Send to WhatsApp - initially disabled, blue when enabled
                             Button {
-                                if lastExportedMedia.isEmpty {
-                                    statusMessage = "Export something first, then you can send to WhatsApp."
-                                    showWhatsAppPanel = false
-                                } else {
+                                if !lastExportedMedia.isEmpty {
                                     showWhatsAppPanel = true
+                                } else {
+                                    statusMessage = "Export something first, then you can send to WhatsApp."
                                 }
                             } label: {
                                 Label("Send to WhatsApp", systemImage: "paperplane")
                             }
                             .keyboardShortcut(.return, modifiers: [.command])
+                            .disabled(lastExportedMedia.isEmpty)
+                            .tint(lastExportedMedia.isEmpty ? .gray : .blue)
+                            
+                            // Open in Finder - initially disabled, blue when enabled
+                            if openInFinderURL != nil {
+                                Button {
+                                    NSWorkspace.shared.activateFileViewerSelecting([openInFinderURL!])
+                                } label: {
+                                    Label("Open in Finder", systemImage: "folder.fill")
+                                }
+                                .buttonStyle(.borderedProminent) // Use prominent style to ensure blue color
+                            } else {
+                                Button {} label: {
+                                    Label("Open in Finder", systemImage: "folder.fill")
+                                }
+                                .disabled(true)
+                                .opacity(0.5)
+                            }
                         }
                     }
+                    .padding(10) // Add 10px padding
                 }
+                .background(regularBoxBackgroundColor) // Regular background color
 
                 // Progress + status
                 if isExporting {
@@ -203,10 +286,10 @@ struct FinalPreviewView: View {
                     }
                 }
 
-                // WhatsApp panel
+                // WhatsApp panel with sections side by side
                 if showWhatsAppPanel, !lastExportedMedia.isEmpty {
                     GroupBox {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(spacing: 12) {
                             HStack {
                                 Text("Send to WhatsApp").font(.headline)
                                 Spacer()
@@ -218,29 +301,43 @@ struct FinalPreviewView: View {
                                 .buttonStyle(.bordered)
                             }
 
-                            // Media drag box
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("1) Drag media files").font(.body).bold()
-                                Text("Open a chat in WhatsApp, then drag this box onto the conversation to attach all items.")
-                                    .font(.caption).foregroundStyle(.secondary)
+                            // Media and caption sections side by side with consistent height
+                            HStack(alignment: .top, spacing: 16) {
+                                // Left section: Media drag box
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("1) Drag media files").font(.body).bold()
+                                    Text("Open a chat in WhatsApp, then drag this box onto the conversation to attach all items.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                    
+                                    Spacer()
 
-                                DragMediaBox(urls: lastExportedMedia)
-                                    .frame(height: 74)
+                                    DragMediaBox(urls: lastExportedMedia)
+                                        .frame(height: 74)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: 140)
+                                
+                                // Right section: Caption drag box
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("2) Drag caption").font(.body).bold()
+                                    Text("Now drag the caption to the message field.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                    
+                                    Spacer()
+
+                                    DragCaptionBox(caption: model.project.caption.trimmingCharacters(in: .whitespacesAndNewlines))
+                                        .frame(height: 74)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: 140)
                             }
-
-                            Divider()
-
-                            // Caption drag box
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("2) Drag caption").font(.body).bold()
-                                Text("Now drag the caption to the message field.")
-                                    .font(.caption).foregroundStyle(.secondary)
-
-                                DragCaptionBox(caption: model.project.caption.trimmingCharacters(in: .whitespacesAndNewlines))
-                                    .frame(height: 60)
-                            }
+                            .frame(height: 140)
                         }
+                        .padding(10) // Add 10px padding
                     }
+                    .background(regularBoxBackgroundColor) // Regular background color
                     .transition(.opacity)
                 }
 
