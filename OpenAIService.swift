@@ -143,62 +143,23 @@ final class OpenAIService: ObservableObject {
             }
         }
         
-        // 1) Convert images to data-URLs (base64 JPEG) and build content parts.
-        var imageParts: [MMPart] = []
-        var successCount = 0
-        
-        for (index, url) in imageURLs.enumerated() {
-            print("[OpenAIService] ========== PROCESSING IMAGE \(index) ==========")
-            
-            // Report initial progress
-            uploadProgressHandler(url, 0.1)
-            
-            do {
-                // Simulate progress steps for image loading
-                uploadProgressHandler(url, 0.2)
-                try await Task.sleep(nanoseconds: 100_000_000) // 0.1s delay
-                
-                if let dataURL = try Self.encodeImageDataURLWithThrows(
-                    at: url,
-                    maxSize: downscaleMax,
-                    quality: jpegQuality,
-                    progressHandler: { progress in
-                        // Scale progress from 0.3 to 0.9 (reserving 0.1-0.3 for loading and 0.9-1.0 for finalizing)
-                        let scaledProgress = 0.3 + (progress * 0.6)
-                        uploadProgressHandler(url, scaledProgress)
-                    }
-                ) {
-                    imageParts.append(.imageURL(.init(url: dataURL)))
-                    successCount += 1
-                    print("[OpenAIService] ✅ Successfully encoded image \(index)")
-                    
-                    // Final progress and completion
-                    uploadProgressHandler(url, 1.0)
-                    uploadCompleteHandler(url)
-                } else {
-                    print("[OpenAIService] ❌ Failed to encode image \(index) - returned nil")
-                    let error = NSError(domain: "OpenAIService", code: 100, userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
-                    uploadErrorHandler(url, error)
-                }
-            } catch {
-                print("[OpenAIService] ❌ Failed to encode image \(index) with error: \(error.localizedDescription)")
-                uploadErrorHandler(url, error)
-                // Continue with other images instead of failing completely
-            }
-        }
+        // 1) Convert images to data-URLs (base64 JPEG) using batch processing
+        let imageParts = try await processBatchedImages(
+            urls: imageURLs,
+            maxSize: downscaleMax,
+            quality: jpegQuality,
+            uploadProgressHandler: uploadProgressHandler,
+            uploadCompleteHandler: uploadCompleteHandler,
+            uploadErrorHandler: uploadErrorHandler
+        )
         
         guard !imageParts.isEmpty else {
             let errorMsg = "No images could be processed successfully out of \(imageURLs.count) images"
             print("[OpenAIService] FATAL: \(errorMsg)")
-            let error = OpenAIError.custom(errorMsg)
-            // Mark all images as failed if not already marked
-            for url in imageURLs {
-                uploadErrorHandler(url, error)
-            }
-            throw error
+            throw OpenAIError.custom(errorMsg)
         }
         
-        print("[OpenAIService] Successfully processed \(successCount) out of \(imageURLs.count) images")
+        print("[OpenAIService] Successfully processed \(imageParts.count) out of \(imageURLs.count) images using batch processing")
 
         // 2) Build message list: previous text-only turns + final multimodal user turn.
         var messages: [MMMessage] = preHistory.map { .init(role: $0.role, content: .string($0.content)) }
@@ -263,63 +224,25 @@ final class OpenAIService: ObservableObject {
         jpegQuality: CGFloat = 0.7
     ) async throws -> String {
         print("[OpenAIService] ========== STARTING IMAGE ONE-SHOT WITH PROGRESS TRACKING ==========")
-        print("[OpenAIService] Processing \(imageURLs.count) images for one-shot")
+        print("[OpenAIService] Processing \(imageURLs.count) images for one-shot using batch processing")
         
-        var imageParts: [MMPart] = []
-        var successCount = 0
-        
-        for (index, url) in imageURLs.enumerated() {
-            print("[OpenAIService] Processing image \(index): \(url.lastPathComponent)")
-            
-            // Report initial progress
-            uploadProgressHandler(url, 0.1)
-            
-            do {
-                // Simulate progress steps for image loading
-                uploadProgressHandler(url, 0.2)
-                try await Task.sleep(nanoseconds: 100_000_000) // 0.1s delay
-                
-                if let dataURL = try Self.encodeImageDataURLWithThrows(
-                    at: url,
-                    maxSize: downscaleMax,
-                    quality: jpegQuality,
-                    progressHandler: { progress in
-                        // Scale progress from 0.3 to 0.9 (reserving 0.1-0.3 for loading and 0.9-1.0 for finalizing)
-                        let scaledProgress = 0.3 + (progress * 0.6)
-                        uploadProgressHandler(url, scaledProgress)
-                    }
-                ) {
-                    imageParts.append(.imageURL(.init(url: dataURL)))
-                    successCount += 1
-                    print("[OpenAIService] ✅ Successfully encoded image \(index)")
-                    
-                    // Final progress and completion
-                    uploadProgressHandler(url, 1.0)
-                    uploadCompleteHandler(url)
-                } else {
-                    print("[OpenAIService] ❌ Failed to encode image \(index) - returned nil")
-                    let error = NSError(domain: "OpenAIService", code: 100, userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
-                    uploadErrorHandler(url, error)
-                }
-            } catch {
-                print("[OpenAIService] ❌ Failed to encode image \(index) with error: \(error.localizedDescription)")
-                uploadErrorHandler(url, error)
-                // Continue with other images instead of failing completely
-            }
-        }
+        // Convert images to data-URLs (base64 JPEG) using batch processing
+        let imageParts = try await processBatchedImages(
+            urls: imageURLs,
+            maxSize: downscaleMax,
+            quality: jpegQuality,
+            uploadProgressHandler: uploadProgressHandler,
+            uploadCompleteHandler: uploadCompleteHandler,
+            uploadErrorHandler: uploadErrorHandler
+        )
         
         guard !imageParts.isEmpty else {
             let errorMsg = "No images could be processed successfully out of \(imageURLs.count) images"
             print("[OpenAIService] FATAL: \(errorMsg)")
-            let error = OpenAIError.custom(errorMsg)
-            // Mark all images as failed if not already marked
-            for url in imageURLs {
-                uploadErrorHandler(url, error)
-            }
-            throw error
+            throw OpenAIError.custom(errorMsg)
         }
         
-        print("[OpenAIService] Successfully processed \(successCount) out of \(imageURLs.count) images")
+        print("[OpenAIService] Successfully processed \(imageParts.count) out of \(imageURLs.count) images using batch processing")
 
         var messages: [MMMessage] = preHistory.map { .init(role: $0.role, content: .string($0.content)) }
         var finalParts: [MMPart] = [.text(.init(text: userPrompt))]
@@ -376,11 +299,15 @@ final class OpenAIService: ObservableObject {
             throw OpenAIError.missingKey
         }
 
+        let config = BatchConfig()
         let url = URL(string: "https://api.openai.com/v1/chat/completions")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = config.networkTimeout
+        
+        print("[OpenAIService] Network timeout set to: \(config.networkTimeout) seconds")
         
         do {
             request.httpBody = try JSONEncoder().encode(body)
@@ -442,10 +369,14 @@ final class OpenAIService: ObservableObject {
             throw OpenAIError.missingKey
         }
         
+        let config = BatchConfig()
         var request = URLRequest(url: URL(string: urlString)!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = config.networkTimeout
+        
+        print("[OpenAIService] Network timeout set to: \(config.networkTimeout) seconds")
         
         do {
             request.httpBody = try JSONEncoder().encode(body)
