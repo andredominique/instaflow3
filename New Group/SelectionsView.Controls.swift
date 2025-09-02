@@ -62,7 +62,7 @@ var controls: some View {
                             if !model.project.zoomToFill && (selectedColorOption != option || backgroundColor != option.color) {
                                 selectedColorOption = option
                                 backgroundColor = option.color
-                                // Sync to global project color
+                                // Update both color settings at once
                                 let ns = NSColor(option.color)
                                 let colorData = ColorData(
                                     red: Double(ns.redComponent),
@@ -70,11 +70,9 @@ var controls: some View {
                                     blue: Double(ns.blueComponent),
                                     opacity: 1
                                 )
-                                if model.project.aspect == .story9x16 {
-                                    model.project.reelBorderColor = colorData
-                                } else {
-                                    model.project.carouselBorderColor = colorData
-                                }
+                                // Set both border colors to the same value
+                                model.project.reelBorderColor = colorData
+                                model.project.carouselBorderColor = colorData
                             }
                         } label: {
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
