@@ -493,17 +493,20 @@ struct FinalPreviewView: View {
                     let imageOut = outDir.appendingPathComponent("Images", isDirectory: true)
                     try FileManager.default.createDirectory(at: imageOut, withIntermediateDirectories: true)
 
+                    // Create color in device RGB color space to ensure proper color representation
+                    let backgroundColor = NSColor(
+                        calibratedRed: model.project.carouselBorderColor.red,
+                        green: model.project.carouselBorderColor.green,
+                        blue: model.project.carouselBorderColor.blue,
+                        alpha: 1
+                    )
+
                     let urls = try ImageProcessor.exportCarouselImages(
                         enabledImagesOrdered,
                         outputDir: imageOut,
                         borderPx: model.project.carouselBorderPx,
-                        zoomToFill: model.project.zoomToFill, // Use global zoom setting
-                        background: NSColor(
-                            srgbRed: model.project.carouselBorderColor.red,
-                            green: model.project.carouselBorderColor.green,
-                            blue: model.project.carouselBorderColor.blue,
-                            alpha: 1
-                        )
+                        zoomToFill: model.project.zoomToFill,
+                        background: backgroundColor
                     )
                     exportedURLs.append(contentsOf: urls)
 
