@@ -3,7 +3,7 @@
 //
 import SwiftUI
 extension SelectionsView {
-var controls: some View {
+    var controls: some View {
         HStack(spacing: 12) {
             Text("Style Images:")
                 .font(.subheadline)

@@ -1,10 +1,6 @@
 import SwiftUI
 import AppKit
 
-// NOTE: ColorOption, ProjectSnapshot, and HistoryManager were moved to their own files.
-// NOTE: Large subviews and computed sections moved into extensions (separate files).
-// NEW: Color option enum
-
 struct SelectionsView: View {
     @EnvironmentObject var model: AppModel
     // Store autoSendToEnd preference in AppStorage to persist between views
@@ -32,8 +28,6 @@ struct SelectionsView: View {
     @AppStorage("customColorGreen") var customColorGreen: Double = 0.0
     @AppStorage("customColorBlue") var customColorBlue: Double = 0.0
     
-    // ... rest of your existing properties
-    
     // UI state
     @State var draggingID: UUID? = nil
     @State var columns: Int = 5
@@ -52,11 +46,9 @@ struct SelectionsView: View {
             blue: Double(ns.blueComponent),
             opacity: 1
         )
-        if model.project.aspect == .story9x16 {
-            model.project.reelBorderColor = colorData
-        } else {
-            model.project.carouselBorderColor = colorData
-        }
+        // Update both border colors at the same time
+        model.project.reelBorderColor = colorData
+        model.project.carouselBorderColor = colorData
     }
     
     // Store selectedColorOption as a State variable, and sync with AppStorage when it changes
@@ -235,22 +227,9 @@ struct SelectionsView: View {
         syncBackgroundColorToProject()
     }
 
-    // MARK: - Header
-    
-
     var enabledImageCount: Int {
         model.project.images.filter { !$0.disabled }.count
     }
-
-    // MARK: - Controls (Updated with background color selector and border slider)
-    
-    
-    // MARK: - Bottom Menu Bar
-    
-    // MARK: - Grid
-    
-    
-    
 
     var displayItems: [ProjectImage] {
         let sorted = model.project.images.sorted { $0.orderIndex < $1.orderIndex }
@@ -283,7 +262,6 @@ struct SelectionsView: View {
     }
     
     // MARK: - Undo/Redo Key Monitoring
-
     private func setupUndoRedoKeyMonitoring() {
         undoRedoKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             // Check for Command+Z (Undo)
@@ -327,11 +305,9 @@ struct SelectionsView: View {
     }
 
     func saveToHistory() {
-        // Fixed: Use proper method to save snapshot
         historyManager.save(model.project.images)
     }
 
-    // Update your existing functions to save history:
     func toggleDisabled(_ item: ProjectImage) {
         saveToHistory() // Save state before change
         
@@ -387,6 +363,7 @@ struct SelectionsView: View {
             return updatedItem
         }
     }
+
     // MARK: - Helper functions
     private func sortImagesByFolderThenName() {
         guard !model.project.images.isEmpty else { return }
@@ -407,7 +384,6 @@ struct SelectionsView: View {
             return copy
         }
     }
-
 
     private func resetToOriginalOrder() {
         // Re-sort all images by filename to restore original order
@@ -435,11 +411,7 @@ struct SelectionsView: View {
         haveCapturedOriginal = false
     }
 
- 
     private func moveDisabledToEnd() {
-        // First, disable any currently enabled images that we want to send to end
-        // (This step is optional - remove if you only want to move already disabled images)
-        
         // Get current order
         let sorted = model.project.images.sorted { $0.orderIndex < $1.orderIndex }
         
@@ -454,8 +426,6 @@ struct SelectionsView: View {
         model.project.images = reordered.enumerated().map { i, item in
             var updatedItem = item
             updatedItem.orderIndex = i
-            // Keep disabled images disabled (this line ensures they stay disabled)
-            // updatedItem.disabled = disabled.contains { $0.id == item.id } ? true : updatedItem.disabled
             return updatedItem
         }
         
@@ -465,9 +435,7 @@ struct SelectionsView: View {
     
     // MARK: - Capture Original Order
     private func captureOriginalOrderIfNeeded(forceIfIDsChanged: Bool = false) {
-        // Only capture if we haven't already captured the original order
         if !haveCapturedOriginal || (forceIfIDsChanged && originalOrderIDs.isEmpty) {
-            // Store the current order as the original order
             originalOrderIDs = model.project.images
                 .sorted { $0.orderIndex < $1.orderIndex }
                 .map { $0.id }
@@ -481,6 +449,7 @@ struct SelectionsView: View {
         model.project.images[idx].offsetX = 0.0
         model.project.images[idx].offsetY = 0.0
     }
+
     // MARK: - Mac Color Picker Function
     func openMacColorPicker() {
         let colorPanel = NSColorPanel.shared
@@ -491,7 +460,7 @@ struct SelectionsView: View {
         // Show the color panel
         colorPanel.makeKeyAndOrderFront(nil)
         
-        // Create a simple observer for color changes (no weak self needed in structs)
+        // Create a simple observer for color changes
         colorPanelObserver = NotificationCenter.default.addObserver(
             forName: NSColorPanel.colorDidChangeNotification,
             object: colorPanel,
@@ -509,12 +478,16 @@ struct SelectionsView: View {
             selectedColorOption = .custom
             selectedColorOptionName = "custom"
             
-            // Sync to project
-            syncBackgroundColorToProject()
-            
-            print("DEBUG: Set global color to R:", nsColor.redComponent, "G:", nsColor.greenComponent, "B:", nsColor.blueComponent, "Aspect:", model.project.aspect)
-            print("DEBUG: model.project.reelBorderColor:", model.project.reelBorderColor)
-            print("DEBUG: model.project.carouselBorderColor:", model.project.carouselBorderColor)
+            // Sync to both aspect ratios
+            let colorData = ColorData(
+                red: Double(nsColor.redComponent),
+                green: Double(nsColor.greenComponent),
+                blue: Double(nsColor.blueComponent),
+                opacity: 1
+            )
+            // Update both border colors at the same time
+            model.project.reelBorderColor = colorData
+            model.project.carouselBorderColor = colorData
         }
     }
 }
