@@ -160,40 +160,50 @@ final class OpenAIService: ObservableObject {
                 
                 if let dataURL = try Self.encodeImageDataURLWithThrows(
                     at: url,
-                    maxSize: downscaleMax,
-                    quality: jpegQuality,
-                    progressHandler: { progress in
-                        // Scale progress from 0.3 to 0.9 (reserving 0.1-0.3 for loading and 0.9-1.0 for finalizing)
-                        let scaledProgress = 0.3 + (progress * 0.6)
-                        uploadProgressHandler(url, scaledProgress)
+            let batchSize = 5
+            var index = 0
+            while index < imageURLs.count {
+                let batch = Array(imageURLs[index..<min(index+batchSize, imageURLs.count)])
+                await withTaskGroup(of: Void.self) { group in
+                    for url in batch {
+                        group.addTask {
+                            let batchIndex = imageURLs.firstIndex(of: url) ?? 0
+                            print("[OpenAIService] ========== PROCESSING IMAGE \(batchIndex) ==========")
+                            uploadProgressHandler(url, 0.1)
+                            do {
+                                uploadProgressHandler(url, 0.2)
+                                try await Task.sleep(nanoseconds: 100_000_000)
+                                if let dataURL = try Self.encodeImageDataURLWithThrows(
+                                    at: url,
+                                    maxSize: downscaleMax,
+                                    quality: jpegQuality,
+                                    progressHandler: { progress in
+                                        let scaledProgress = 0.3 + (progress * 0.6)
+                                        uploadProgressHandler(url, scaledProgress)
+                                    }
+                                ) {
+                                    await MainActor.run {
+                                        imageParts.append(.imageURL(.init(url: dataURL)))
+                                        successCount += 1
+                                    }
+                                    print("[OpenAIService] ✅ Successfully encoded image \(batchIndex)")
+                                    uploadProgressHandler(url, 1.0)
+                                    uploadCompleteHandler(url)
+                                } else {
+                                    print("[OpenAIService] ❌ Failed to encode image \(batchIndex) - returned nil")
+                                    let error = NSError(domain: "OpenAIService", code: 100, userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
+                                    uploadErrorHandler(url, error)
+                                }
+                            } catch {
+                                print("[OpenAIService] ❌ Failed to encode image \(batchIndex) with error: \(error.localizedDescription)")
+                                uploadErrorHandler(url, error)
+                            }
+                        }
                     }
-                ) {
-                    imageParts.append(.imageURL(.init(url: dataURL)))
-                    successCount += 1
-                    print("[OpenAIService] ✅ Successfully encoded image \(index)")
-                    
-                    // Final progress and completion
-                    uploadProgressHandler(url, 1.0)
-                    uploadCompleteHandler(url)
-                } else {
-                    print("[OpenAIService] ❌ Failed to encode image \(index) - returned nil")
-                    let error = NSError(domain: "OpenAIService", code: 100, userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
-                    uploadErrorHandler(url, error)
+                    await group.waitForAll()
                 }
-            } catch {
-                print("[OpenAIService] ❌ Failed to encode image \(index) with error: \(error.localizedDescription)")
-                uploadErrorHandler(url, error)
-                // Continue with other images instead of failing completely
+                index += batchSize
             }
-        }
-        
-        guard !imageParts.isEmpty else {
-            let errorMsg = "No images could be processed successfully out of \(imageURLs.count) images"
-            print("[OpenAIService] FATAL: \(errorMsg)")
-            let error = OpenAIError.custom(errorMsg)
-            // Mark all images as failed if not already marked
-            for url in imageURLs {
-                uploadErrorHandler(url, error)
             }
             throw error
         }
@@ -588,40 +598,50 @@ struct ChatResponseText: Decodable {
 }
 
 // MARK: - Wire types (multimodal)
-
-struct ChatRequestMM: Encodable {
-    let model: String
-    let messages: [MMMessage]
-    let stream: Bool
-}
-
-struct MMMessage: Encodable {
-    let role: String
-    let content: MMContent
-}
-
-enum MMContent: Encodable {
-    case string(String)
-    case parts([MMPart])
-
-    func encode(to encoder: Encoder) throws {
-        switch self {
-        case .string(let s):
-            var c = encoder.singleValueContainer()
-            try c.encode(s)
-        case .parts(let parts):
-            var c = encoder.unkeyedContainer()
-            for p in parts { try c.encode(p) }
-        }
-    }
-}
-
-enum MMPart: Encodable {
-    case text(TextPart)
-    case imageURL(ImageURLPart)
-
-    func encode(to encoder: Encoder) throws {
-        switch self {
+            let batchSize = 5
+            var index = 0
+            while index < imageURLs.count {
+                let batch = Array(imageURLs[index..<min(index+batchSize, imageURLs.count)])
+                await withTaskGroup(of: Void.self) { group in
+                    for url in batch {
+                        group.addTask {
+                            let batchIndex = imageURLs.firstIndex(of: url) ?? 0
+                            print("[OpenAIService] Processing image \(batchIndex): \(url.lastPathComponent)")
+                            uploadProgressHandler(url, 0.1)
+                            do {
+                                uploadProgressHandler(url, 0.2)
+                                try await Task.sleep(nanoseconds: 100_000_000)
+                                if let dataURL = try Self.encodeImageDataURLWithThrows(
+                                    at: url,
+                                    maxSize: downscaleMax,
+                                    quality: jpegQuality,
+                                    progressHandler: { progress in
+                                        let scaledProgress = 0.3 + (progress * 0.6)
+                                        uploadProgressHandler(url, scaledProgress)
+                                    }
+                                ) {
+                                    await MainActor.run {
+                                        imageParts.append(.imageURL(.init(url: dataURL)))
+                                        successCount += 1
+                                    }
+                                    print("[OpenAIService] ✅ Successfully encoded image \(batchIndex)")
+                                    uploadProgressHandler(url, 1.0)
+                                    uploadCompleteHandler(url)
+                                } else {
+                                    print("[OpenAIService] ❌ Failed to encode image \(batchIndex) - returned nil")
+                                    let error = NSError(domain: "OpenAIService", code: 100, userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
+                                    uploadErrorHandler(url, error)
+                                }
+                            } catch {
+                                print("[OpenAIService] ❌ Failed to encode image \(batchIndex) with error: \(error.localizedDescription)")
+                                uploadErrorHandler(url, error)
+                            }
+                        }
+                    }
+                    await group.waitForAll()
+                }
+                index += batchSize
+            }
         case .text(let t):
             try t.encode(to: encoder)
         case .imageURL(let i):
