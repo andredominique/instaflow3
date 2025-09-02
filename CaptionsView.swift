@@ -1,6 +1,25 @@
 import SwiftUI
 import AppKit
 
+// Define an image upload status tracking structure
+struct ImageUploadStatus: Identifiable {
+    let id: UUID
+    let url: URL
+    var progress: Double // 0.0 to 1.0
+    var isComplete: Bool
+    var hasError: Bool
+    var errorMessage: String?
+    
+    init(url: URL) {
+        self.id = UUID()
+        self.url = url
+        self.progress = 0.0
+        self.isComplete = false
+        self.hasError = false
+        self.errorMessage = nil
+    }
+}
+
 // MARK: - CaptionsView
 
 struct CaptionsView: View {
@@ -15,6 +34,11 @@ struct CaptionsView: View {
 
     // Attach images
     @State private var attachSelectedImages = false
+    
+    // Image upload tracking
+    @State private var imageUploadStatuses: [ImageUploadStatus] = []
+    @State private var showUploadStatus = false
+    @State private var overallProgress: Double = 0.0
 
     // Preset sheet state
     @State private var presetSheetShown = false
@@ -316,14 +340,88 @@ struct CaptionsView: View {
             }
             .padding(.horizontal, 12)
 
-            // Attach toggle
+            // Attach toggle with upload status
             if !enabledImageURLs.isEmpty {
-                HStack(spacing: 8) {
-                    Toggle("Attach Selects", isOn: $attachSelectedImages)
-                    Text("\(enabledImageURLs.count) image(s) available")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
+                VStack(spacing: 4) {
+                    HStack(spacing: 8) {
+                        Toggle("Attach Selects", isOn: $attachSelectedImages)
+                        Text("\(enabledImageURLs.count) image(s) available")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    
+                    // Show image upload status when uploading
+                    if showUploadStatus {
+                        VStack(spacing: 6) {
+                            // Overall progress bar
+                            HStack {
+                                Text("Overall Progress:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("\(Int(overallProgress * 100))%")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            ProgressView(value: overallProgress)
+                                .progressViewStyle(.linear)
+                                .frame(height: 6)
+                            
+                            // Individual image status
+                            ForEach(imageUploadStatuses) { status in
+                                HStack(spacing: 8) {
+                                    // Status icon
+                                    Group {
+                                        if status.isComplete {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.green)
+                                        } else if status.hasError {
+                                            Image(systemName: "exclamationmark.circle.fill")
+                                                .foregroundColor(.red)
+                                        } else {
+                                            ProgressView()
+                                                .scaleEffect(0.7)
+                                                .frame(width: 16, height: 16)
+                                        }
+                                    }
+                                    .frame(width: 16)
+                                    
+                                    // Image name
+                                    Text(status.url.lastPathComponent)
+                                        .font(.caption)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                    
+                                    Spacer()
+                                    
+                                    // Status text
+                                    if status.hasError {
+                                        Text(status.errorMessage ?? "Error")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                    } else if status.isComplete {
+                                        Text("Complete")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                    } else {
+                                        Text("\(Int(status.progress * 100))%")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor).opacity(0.6))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 6)
@@ -559,6 +657,77 @@ struct CaptionsView: View {
     private func dlog(_ s: String) {
         print("[CaptionsView] \(s)")
     }
+    
+    // MARK: - Image Upload Status Functions
+    
+    /// Initialize upload status tracking for the images that will be uploaded
+    private func initializeImageUploadStatus(for urls: [URL]) {
+        imageUploadStatuses = urls.map { ImageUploadStatus(url: $0) }
+        showUploadStatus = !imageUploadStatuses.isEmpty
+        overallProgress = 0.0
+    }
+    
+    /// Update the progress of a specific image
+    private func updateImageProgress(for url: URL, progress: Double) {
+        guard let index = imageUploadStatuses.firstIndex(where: { $0.url == url }) else { return }
+        
+        // Update the specific image
+        imageUploadStatuses[index].progress = progress
+        
+        // Calculate overall progress
+        let totalProgress = imageUploadStatuses.reduce(0.0) { $0 + $1.progress }
+        overallProgress = totalProgress / Double(imageUploadStatuses.count)
+    }
+    
+    /// Mark an image as complete
+    private func markImageComplete(for url: URL) {
+        guard let index = imageUploadStatuses.firstIndex(where: { $0.url == url }) else { return }
+        
+        // Mark as complete
+        imageUploadStatuses[index].progress = 1.0
+        imageUploadStatuses[index].isComplete = true
+        
+        // Update overall progress
+        recalculateOverallProgress()
+        
+        // Check if all are complete
+        checkAllImagesComplete()
+    }
+    
+    /// Mark an image as having an error
+    private func markImageError(for url: URL, message: String) {
+        guard let index = imageUploadStatuses.firstIndex(where: { $0.url == url }) else { return }
+        
+        // Mark as error
+        imageUploadStatuses[index].hasError = true
+        imageUploadStatuses[index].errorMessage = message
+        
+        // Update overall progress (exclude this image)
+        recalculateOverallProgress()
+        
+        // Check if all are complete (or errored)
+        checkAllImagesComplete()
+    }
+    
+    /// Recalculate overall progress
+    private func recalculateOverallProgress() {
+        let totalProgress = imageUploadStatuses.reduce(0.0) { $0 + $1.progress }
+        overallProgress = totalProgress / Double(imageUploadStatuses.count)
+    }
+    
+    /// Check if all images are complete or have errors
+    private func checkAllImagesComplete() {
+        let allDone = imageUploadStatuses.allSatisfy { $0.isComplete || $0.hasError }
+        
+        if allDone {
+            // Hide the status after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                withAnimation {
+                    showUploadStatus = false
+                }
+            }
+        }
+    }
 
     // MARK: - Send (diagnostic + store-fallback to guarantee bubbles)
 
@@ -605,6 +774,13 @@ struct CaptionsView: View {
         let attachableImages = enabledImageURLs.filter { allowedExts.contains($0.pathExtension.lowercased()) }
         dlog("Attach toggle=\(attachSelectedImages), attachableImages=\(attachableImages.count)")
 
+        // Initialize image upload status if there are images to attach
+        if attachSelectedImages && !attachableImages.isEmpty {
+            await MainActor.run {
+                initializeImageUploadStatus(for: attachableImages)
+            }
+        }
+
         // Stream helpers with "silent stream" timeout
         struct SilentStreamError: Error {}
         let firstChunkTimeout: UInt64 = 3_000_000_000 // 3 seconds
@@ -638,15 +814,35 @@ struct CaptionsView: View {
             var gotFirstChunk = false
 
             let streamTask = Task {
-                try await OpenAIService.shared.chatStreamWithImages(
+                // Use the renamed method with progress tracking
+                try await OpenAIService.shared.chatStreamWithImagesProgress(
                     preHistory: Array(textHistory.dropLast()),
                     userPrompt: prompt,
-                    imageURLs: attachableImages
-                ) { chunk in
-                    if !gotFirstChunk { gotFirstChunk = true; dlog("streamWithImages(): first chunk received") }
-                    assembled += chunk
-                    updateAssistant(assembled)
-                }
+                    imageURLs: attachableImages,
+                    uploadProgressHandler: { url, progress in
+                        // Update image upload progress
+                        Task { @MainActor in
+                            updateImageProgress(for: url, progress: progress)
+                        }
+                    },
+                    uploadCompleteHandler: { url in
+                        // Mark image as uploaded
+                        Task { @MainActor in
+                            markImageComplete(for: url)
+                        }
+                    },
+                    uploadErrorHandler: { url, error in
+                        // Mark image as having an error
+                        Task { @MainActor in
+                            markImageError(for: url, message: error.localizedDescription)
+                        }
+                    },
+                    onDelta: { chunk in
+                        if !gotFirstChunk { gotFirstChunk = true; dlog("streamWithImages(): first chunk received") }
+                        assembled += chunk
+                        updateAssistant(assembled)
+                    }
+                )
             }
 
             try? await Task.sleep(nanoseconds: firstChunkTimeout)
@@ -669,10 +865,29 @@ struct CaptionsView: View {
                     dlog("Result: STREAM (images) success")
                 } catch {
                     dlog("STREAM (images) failed: \(error.localizedDescription) → fallback to one-shot")
-                    let full = try await OpenAIService.shared.chatOnceWithImages(
+                    // Use the renamed method with progress tracking for fallback
+                    let full = try await OpenAIService.shared.chatOnceWithImagesProgress(
                         preHistory: Array(textHistory.dropLast()),
                         userPrompt: prompt,
-                        imageURLs: attachableImages
+                        imageURLs: attachableImages,
+                        uploadProgressHandler: { url, progress in
+                            // Update image upload progress
+                            Task { @MainActor in
+                                updateImageProgress(for: url, progress: progress)
+                            }
+                        },
+                        uploadCompleteHandler: { url in
+                            // Mark image as uploaded
+                            Task { @MainActor in
+                                markImageComplete(for: url)
+                            }
+                        },
+                        uploadErrorHandler: { url, error in
+                            // Mark image as having an error
+                            Task { @MainActor in
+                                markImageError(for: url, message: error.localizedDescription)
+                            }
+                        }
                     )
                     updateAssistant(full)
                     dlog("Result: FALLBACK (images) success, \(full.count) chars")
@@ -693,6 +908,25 @@ struct CaptionsView: View {
             let msg = "(Caption error: \(error.localizedDescription))"
             updateAssistant(msg)
             dlog("UNHANDLED ERROR: \(error.localizedDescription)")
+            
+            // Mark all images as having errors
+            if !imageUploadStatuses.isEmpty {
+                await MainActor.run {
+                    for i in 0..<imageUploadStatuses.count {
+                        if !imageUploadStatuses[i].isComplete && !imageUploadStatuses[i].hasError {
+                            imageUploadStatuses[i].hasError = true
+                            imageUploadStatuses[i].errorMessage = "Failed: \(error.localizedDescription)"
+                        }
+                    }
+                    
+                    // Hide the status after a delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        withAnimation {
+                            showUploadStatus = false
+                        }
+                    }
+                }
+            }
         }
 
         await MainActor.run { isSending = false }
@@ -726,9 +960,12 @@ struct CaptionsView: View {
 
 // MARK: - EnterSendingTextEditor (macOS) — Enter to send, Shift+Enter newline
 
+// Define a completely rewritten EnterSendingTextEditor that properly handles async operations
+
 private struct EnterSendingTextEditor: NSViewRepresentable {
     @Binding var text: String
-    var onCommit: () -> Void
+    // Store a closure that will be executed when the editor commits its content
+    var onCommit: () -> Void // Must be synchronous
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -837,6 +1074,7 @@ private struct EnterSendingTextEditor: NSViewRepresentable {
                 } else {
                     // Ensure binding has latest text BEFORE onCommit()
                     parent.text = self.textView.string
+                    // Call the synchronous closure
                     parent.onCommit()
                 }
                 return true
@@ -845,3 +1083,4 @@ private struct EnterSendingTextEditor: NSViewRepresentable {
         }
     }
 }
+

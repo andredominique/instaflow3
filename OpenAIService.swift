@@ -43,9 +43,14 @@ final class OpenAIService: ObservableObject {
         return try await chatOnce(history: history)
     }
 
+    // Fixed version - explicitly call the basic version without progress tracking
     func generateCaption(prompt: String, imageURLs: [URL]) async throws -> String {
         // Convenience non-streaming path when caller wants a one-shot caption with images.
-        try await chatOnceWithImages(preHistory: [], userPrompt: prompt, imageURLs: imageURLs)
+        return try await chatOnceWithImagesBasic(
+            preHistory: [],
+            userPrompt: prompt,
+            imageURLs: imageURLs
+        )
     }
 
     // MARK: - Chat (text-only)
@@ -74,19 +79,23 @@ final class OpenAIService: ObservableObject {
         return try await streamRequest(req, onDelta: onDelta)
     }
 
-    // MARK: - Chat (text + images, streaming)
+    // MARK: - Chat (text + images, streaming) with Upload Progress
 
     /// Streams a reply where the final user message contains the prompt + attached images.
-    func chatStreamWithImages(
+    /// This version adds upload progress tracking.
+    func chatStreamWithImagesProgress(
         preHistory: [(role: String, content: String)],
         userPrompt: String,
         imageURLs: [URL],
+        uploadProgressHandler: @escaping (URL, Double) -> Void,
+        uploadCompleteHandler: @escaping (URL) -> Void,
+        uploadErrorHandler: @escaping (URL, Error) -> Void,
         model: String? = nil,
         downscaleMax: CGFloat = 1024, // pixels longest edge
         jpegQuality: CGFloat = 0.7,
         onDelta: @escaping @MainActor (String) -> Void
     ) async throws -> String {
-        print("[OpenAIService] ========== STARTING IMAGE STREAM ==========")
+        print("[OpenAIService] ========== STARTING IMAGE STREAM WITH PROGRESS TRACKING ==========")
         print("[OpenAIService] Processing \(imageURLs.count) images for streaming")
         print("[OpenAIService] Model: \(model ?? defaultModel)")
         print("[OpenAIService] Downscale max: \(downscaleMax)")
@@ -141,16 +150,39 @@ final class OpenAIService: ObservableObject {
         for (index, url) in imageURLs.enumerated() {
             print("[OpenAIService] ========== PROCESSING IMAGE \(index) ==========")
             
+            // Report initial progress
+            uploadProgressHandler(url, 0.1)
+            
             do {
-                if let dataURL = try Self.encodeImageDataURLWithThrows(at: url, maxSize: downscaleMax, quality: jpegQuality) {
+                // Simulate progress steps for image loading
+                uploadProgressHandler(url, 0.2)
+                try await Task.sleep(nanoseconds: 100_000_000) // 0.1s delay
+                
+                if let dataURL = try Self.encodeImageDataURLWithThrows(
+                    at: url,
+                    maxSize: downscaleMax,
+                    quality: jpegQuality,
+                    progressHandler: { progress in
+                        // Scale progress from 0.3 to 0.9 (reserving 0.1-0.3 for loading and 0.9-1.0 for finalizing)
+                        let scaledProgress = 0.3 + (progress * 0.6)
+                        uploadProgressHandler(url, scaledProgress)
+                    }
+                ) {
                     imageParts.append(.imageURL(.init(url: dataURL)))
                     successCount += 1
                     print("[OpenAIService] ✅ Successfully encoded image \(index)")
+                    
+                    // Final progress and completion
+                    uploadProgressHandler(url, 1.0)
+                    uploadCompleteHandler(url)
                 } else {
                     print("[OpenAIService] ❌ Failed to encode image \(index) - returned nil")
+                    let error = NSError(domain: "OpenAIService", code: 100, userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
+                    uploadErrorHandler(url, error)
                 }
             } catch {
                 print("[OpenAIService] ❌ Failed to encode image \(index) with error: \(error.localizedDescription)")
+                uploadErrorHandler(url, error)
                 // Continue with other images instead of failing completely
             }
         }
@@ -158,7 +190,12 @@ final class OpenAIService: ObservableObject {
         guard !imageParts.isEmpty else {
             let errorMsg = "No images could be processed successfully out of \(imageURLs.count) images"
             print("[OpenAIService] FATAL: \(errorMsg)")
-            throw OpenAIError.custom(errorMsg)
+            let error = OpenAIError.custom(errorMsg)
+            // Mark all images as failed if not already marked
+            for url in imageURLs {
+                uploadErrorHandler(url, error)
+            }
+            throw error
         }
         
         print("[OpenAIService] Successfully processed \(successCount) out of \(imageURLs.count) images")
@@ -187,17 +224,45 @@ final class OpenAIService: ObservableObject {
             throw error
         }
     }
-
-    /// Non-streaming version of the above.
-    func chatOnceWithImages(
+    
+    /// Original streaming method (without progress tracking)
+    func chatStreamWithImages(
         preHistory: [(role: String, content: String)],
         userPrompt: String,
         imageURLs: [URL],
         model: String? = nil,
+        downscaleMax: CGFloat = 1024, // pixels longest edge
+        jpegQuality: CGFloat = 0.7,
+        onDelta: @escaping @MainActor (String) -> Void
+    ) async throws -> String {
+        // Call the version with progress tracking but with empty handlers
+        return try await chatStreamWithImagesProgress(
+            preHistory: preHistory,
+            userPrompt: userPrompt,
+            imageURLs: imageURLs,
+            uploadProgressHandler: { _, _ in },
+            uploadCompleteHandler: { _ in },
+            uploadErrorHandler: { _, _ in },
+            model: model,
+            downscaleMax: downscaleMax,
+            jpegQuality: jpegQuality,
+            onDelta: onDelta
+        )
+    }
+
+    /// Non-streaming version with progress tracking
+    func chatOnceWithImagesProgress(
+        preHistory: [(role: String, content: String)],
+        userPrompt: String,
+        imageURLs: [URL],
+        uploadProgressHandler: @escaping (URL, Double) -> Void,
+        uploadCompleteHandler: @escaping (URL) -> Void,
+        uploadErrorHandler: @escaping (URL, Error) -> Void,
+        model: String? = nil,
         downscaleMax: CGFloat = 1024,
         jpegQuality: CGFloat = 0.7
     ) async throws -> String {
-        print("[OpenAIService] ========== STARTING IMAGE ONE-SHOT ==========")
+        print("[OpenAIService] ========== STARTING IMAGE ONE-SHOT WITH PROGRESS TRACKING ==========")
         print("[OpenAIService] Processing \(imageURLs.count) images for one-shot")
         
         var imageParts: [MMPart] = []
@@ -206,23 +271,52 @@ final class OpenAIService: ObservableObject {
         for (index, url) in imageURLs.enumerated() {
             print("[OpenAIService] Processing image \(index): \(url.lastPathComponent)")
             
+            // Report initial progress
+            uploadProgressHandler(url, 0.1)
+            
             do {
-                if let dataURL = try Self.encodeImageDataURLWithThrows(at: url, maxSize: downscaleMax, quality: jpegQuality) {
+                // Simulate progress steps for image loading
+                uploadProgressHandler(url, 0.2)
+                try await Task.sleep(nanoseconds: 100_000_000) // 0.1s delay
+                
+                if let dataURL = try Self.encodeImageDataURLWithThrows(
+                    at: url,
+                    maxSize: downscaleMax,
+                    quality: jpegQuality,
+                    progressHandler: { progress in
+                        // Scale progress from 0.3 to 0.9 (reserving 0.1-0.3 for loading and 0.9-1.0 for finalizing)
+                        let scaledProgress = 0.3 + (progress * 0.6)
+                        uploadProgressHandler(url, scaledProgress)
+                    }
+                ) {
                     imageParts.append(.imageURL(.init(url: dataURL)))
                     successCount += 1
                     print("[OpenAIService] ✅ Successfully encoded image \(index)")
+                    
+                    // Final progress and completion
+                    uploadProgressHandler(url, 1.0)
+                    uploadCompleteHandler(url)
                 } else {
                     print("[OpenAIService] ❌ Failed to encode image \(index) - returned nil")
+                    let error = NSError(domain: "OpenAIService", code: 100, userInfo: [NSLocalizedDescriptionKey: "Failed to encode image"])
+                    uploadErrorHandler(url, error)
                 }
             } catch {
                 print("[OpenAIService] ❌ Failed to encode image \(index) with error: \(error.localizedDescription)")
+                uploadErrorHandler(url, error)
+                // Continue with other images instead of failing completely
             }
         }
         
         guard !imageParts.isEmpty else {
             let errorMsg = "No images could be processed successfully out of \(imageURLs.count) images"
             print("[OpenAIService] FATAL: \(errorMsg)")
-            throw OpenAIError.custom(errorMsg)
+            let error = OpenAIError.custom(errorMsg)
+            // Mark all images as failed if not already marked
+            for url in imageURLs {
+                uploadErrorHandler(url, error)
+            }
+            throw error
         }
         
         print("[OpenAIService] Successfully processed \(successCount) out of \(imageURLs.count) images")
@@ -244,6 +338,29 @@ final class OpenAIService: ObservableObject {
             print("[OpenAIService] ❌ One-shot failed with error: \(error)")
             throw error
         }
+    }
+    
+    /// Original non-streaming method (without progress tracking)
+    func chatOnceWithImagesBasic(
+        preHistory: [(role: String, content: String)],
+        userPrompt: String,
+        imageURLs: [URL],
+        model: String? = nil,
+        downscaleMax: CGFloat = 1024,
+        jpegQuality: CGFloat = 0.7
+    ) async throws -> String {
+        // Call the version with progress tracking but with empty handlers
+        return try await chatOnceWithImagesProgress(
+            preHistory: preHistory,
+            userPrompt: userPrompt,
+            imageURLs: imageURLs,
+            uploadProgressHandler: { _, _ in },
+            uploadCompleteHandler: { _ in },
+            uploadErrorHandler: { _, _ in },
+            model: model,
+            downscaleMax: downscaleMax,
+            jpegQuality: jpegQuality
+        )
     }
 
     // MARK: - Streaming core
@@ -353,16 +470,22 @@ final class OpenAIService: ObservableObject {
         return data
     }
 
-    // MARK: - Image encoding with detailed error handling
+    // MARK: - Image encoding with detailed error handling and progress tracking
 
-    /// NEW: Throwing version that provides detailed error information
-    private static func encodeImageDataURLWithThrows(at url: URL, maxSize: CGFloat, quality: CGFloat) throws -> String? {
+    /// Enhanced version with progress tracking
+    private static func encodeImageDataURLWithThrows(
+        at url: URL,
+        maxSize: CGFloat,
+        quality: CGFloat,
+        progressHandler: @escaping (Double) -> Void = { _ in }
+    ) throws -> String? {
         print("[OpenAIService] ========== ENCODING IMAGE ==========")
         print("[OpenAIService] Path: \(url.path)")
         print("[OpenAIService] Max size: \(maxSize)")
         print("[OpenAIService] Quality: \(quality)")
         
-        // Step 1: Check file existence
+        // Step 1: Check file existence (10% progress)
+        progressHandler(0.1)
         guard FileManager.default.fileExists(atPath: url.path) else {
             let error = NSError(domain: "ImageError", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "File does not exist at path: \(url.path)"
@@ -372,7 +495,8 @@ final class OpenAIService: ObservableObject {
         }
         print("[OpenAIService] ✅ Step 1: File exists")
         
-        // Step 2: Load NSImage
+        // Step 2: Load NSImage (20% progress)
+        progressHandler(0.2)
         guard let nsImage = NSImage(contentsOf: url) else {
             let error = NSError(domain: "ImageError", code: 2, userInfo: [
                 NSLocalizedDescriptionKey: "Cannot load NSImage from: \(url.path)"
@@ -382,7 +506,8 @@ final class OpenAIService: ObservableObject {
         }
         print("[OpenAIService] ✅ Step 2: NSImage loaded, size: \(nsImage.size)")
         
-        // Step 3: Validate image size
+        // Step 3: Validate image size (30% progress)
+        progressHandler(0.3)
         let originalSize = nsImage.size
         guard originalSize.width > 0 && originalSize.height > 0 else {
             let error = NSError(domain: "ImageError", code: 3, userInfo: [
@@ -393,11 +518,13 @@ final class OpenAIService: ObservableObject {
         }
         print("[OpenAIService] ✅ Step 3: Valid dimensions")
         
-        // Step 4: Resize image
-        let scaled = nsImage.resizedWithThrows(longEdge: maxSize)
+        // Step 4: Resize image (50% progress)
+        progressHandler(0.5)
+        let scaled = try nsImage.resizedWithThrows(longEdge: maxSize)
         print("[OpenAIService] ✅ Step 4: Image resized to: \(scaled.size)")
         
-        // Step 5: Convert to JPEG
+        // Step 5: Convert to JPEG (70% progress)
+        progressHandler(0.7)
         guard let jpeg = try scaled.jpegDataWithThrows(quality: quality) else {
             let error = NSError(domain: "ImageError", code: 5, userInfo: [
                 NSLocalizedDescriptionKey: "Failed to convert image to JPEG"
@@ -407,16 +534,19 @@ final class OpenAIService: ObservableObject {
         }
         print("[OpenAIService] ✅ Step 5: JPEG created, size: \(jpeg.count) bytes")
         
-        // Step 6: Base64 encode
+        // Step 6: Base64 encode (90% progress)
+        progressHandler(0.9)
         let b64 = jpeg.base64EncodedString()
         let dataURL = "data:image/jpeg;base64,\(b64)"
         print("[OpenAIService] ✅ Step 6: Base64 encoded, data URL length: \(dataURL.count)")
         
+        // Final progress (100%)
+        progressHandler(1.0)
         print("[OpenAIService] ========== ENCODING COMPLETE ==========")
         return dataURL
     }
 
-    /// Original version for backward compatibility
+    /// Original version without progress tracking
     private static func encodeImageDataURL(at url: URL, maxSize: CGFloat, quality: CGFloat) -> String? {
         do {
             return try encodeImageDataURLWithThrows(at: url, maxSize: maxSize, quality: quality)
@@ -424,6 +554,12 @@ final class OpenAIService: ObservableObject {
             print("[OpenAIService] encodeImageDataURL failed: \(error.localizedDescription)")
             return nil
         }
+    }
+    
+    /// Original version for backward compatibility
+    private static func encodeImageDataURLWithThrows(at url: URL, maxSize: CGFloat, quality: CGFloat) throws -> String? {
+        // Call the enhanced version with empty progress handler
+        return try encodeImageDataURLWithThrows(at: url, maxSize: maxSize, quality: quality, progressHandler: { _ in })
     }
 }
 
@@ -595,7 +731,7 @@ enum OpenAIError: LocalizedError {
 // MARK: - NSImage helpers with error handling
 
 private extension NSImage {
-    func resizedWithThrows(longEdge: CGFloat) -> NSImage {
+    func resizedWithThrows(longEdge: CGFloat) throws -> NSImage {
         print("[NSImage] Resizing with longEdge: \(longEdge)")
         
         guard longEdge > 0 else {
@@ -606,7 +742,10 @@ private extension NSImage {
         let originalSize = self.size
         guard originalSize.width > 0 && originalSize.height > 0 else {
             print("[NSImage] Invalid original size, returning self")
-            return self
+            let error = NSError(domain: "NSImageError", code: 4, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid image dimensions for resize: \(originalSize)"
+            ])
+            throw error
         }
         
         // If image is already smaller than target, return as-is
@@ -674,7 +813,12 @@ private extension NSImage {
 
     // Original methods for backward compatibility
     func resized(longEdge: CGFloat) -> NSImage {
-        return resizedWithThrows(longEdge: longEdge)
+        do {
+            return try resizedWithThrows(longEdge: longEdge)
+        } catch {
+            print("[NSImage] resized failed: \(error.localizedDescription)")
+            return self
+        }
     }
 
     func jpegData(quality: CGFloat) -> Data? {
