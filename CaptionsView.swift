@@ -31,6 +31,9 @@ struct CaptionsView: View {
     
     // Auto-trim tracking
     @State private var lastAutoTrimCount = 0
+    
+    // Observe the API key state
+    @AppStorage("openai_api_key") private var apiKey: String = ""
 
     enum PresetMode { case add, rename, edit }
 
@@ -55,14 +58,58 @@ struct CaptionsView: View {
         let f = DateFormatter(); f.dateStyle = .short; f.timeStyle = .short
         return f.string(from: Date())
     }
+    
+    // Check if OpenAI API key is set
+    private var isAPIKeySet: Bool {
+        !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         HStack(spacing: 0) {
             sidebar
             Divider()
-            chatArea
+            ZStack {
+                chatArea
+                    .disabled(!isAPIKeySet)
+                    .opacity(isAPIKeySet ? 1.0 : 0.5)
+                
+                // Overlay message when API key is not set
+                if !isAPIKeySet {
+                    VStack(spacing: 16) {
+                        Image(systemName: "key.slash.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        
+                        Text("API Key Not Set")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        Text("You need to set up your OpenAI API key to use ChatGPT.")
+                            .multilineTextAlignment(.center)
+                        
+                        Button("Open Settings") {
+                            showSettingsSheet = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .padding(.top, 8)
+                    }
+                    .padding(30)
+                    .frame(maxWidth: 300)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(NSColor.windowBackgroundColor).opacity(0.9))
+                            .shadow(color: .black.opacity(0.1), radius: 10)
+                    )
+                }
+            }
         }
-        .sheet(isPresented: $showSettingsSheet) { SettingsView() }
+        .sheet(isPresented: $showSettingsSheet, onDismiss: {
+            // When settings sheet is dismissed, the view will automatically update
+            // based on the new value of isAPIKeySet computed property
+        }) {
+            SettingsView()
+        }
         .sheet(isPresented: $presetSheetShown, onDismiss: {
             presetTitle = ""; presetText = ""; presetEditing = nil
         }) { presetSheet }
