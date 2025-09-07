@@ -280,7 +280,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 4887BFA62E465EB9000BE4AC /* Build configuration list for PBXProject "InstaFlow" */;
+			buildConfigurationList = 4887BFA62E465EB9000BE4AC /* Build configuration list for PBXProject "CreateFlow" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -643,7 +643,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4887BFA62E465EB9000BE4AC /* Build configuration list for PBXProject "InstaFlow" */ = {
+		4887BFA62E465EB9000BE4AC /* Build configuration list for PBXProject "CreateFlow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4887BFCB2E465EBB000BE4AC /* Debug */,

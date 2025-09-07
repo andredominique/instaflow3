@@ -18,7 +18,7 @@
                BlueprintIdentifier = "4887BFAA2E465EB9000BE4AC"
                BuildableName = "InstaFlow.app"
                BlueprintName = "InstaFlow"
-               ReferencedContainer = "container:InstaFlow.xcodeproj">
+               ReferencedContainer = "container:CreateFlow.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -38,7 +38,7 @@
                BlueprintIdentifier = "4887BFB82E465EBB000BE4AC"
                BuildableName = "InstaFlowTests.xctest"
                BlueprintName = "InstaFlowTests"
-               ReferencedContainer = "container:InstaFlow.xcodeproj">
+               ReferencedContainer = "container:CreateFlow.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -49,7 +49,7 @@
                BlueprintIdentifier = "4887BFC22E465EBB000BE4AC"
                BuildableName = "InstaFlowUITests.xctest"
                BlueprintName = "InstaFlowUITests"
-               ReferencedContainer = "container:InstaFlow.xcodeproj">
+               ReferencedContainer = "container:CreateFlow.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -71,7 +71,7 @@
             BlueprintIdentifier = "4887BFAA2E465EB9000BE4AC"
             BuildableName = "InstaFlow.app"
             BlueprintName = "InstaFlow"
-            ReferencedContainer = "container:InstaFlow.xcodeproj">
+            ReferencedContainer = "container:CreateFlow.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -95,7 +95,7 @@
             BlueprintIdentifier = "4887BFAA2E465EB9000BE4AC"
             BuildableName = "InstaFlow.app"
             BlueprintName = "InstaFlow"
-            ReferencedContainer = "container:InstaFlow.xcodeproj">
+            ReferencedContainer = "container:CreateFlow.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
