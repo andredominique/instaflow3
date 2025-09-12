@@ -13,8 +13,6 @@ extension SelectionsView {
                 .frame(minWidth: 100, alignment: .leading) // Ensures left alignment and label stays intact
             
             Spacer()
-            
-            // UPDATED: Zoom to Fill button with standard bordered style when inactive
             Group {
                 if model.project.zoomToFill {
                     // Active state - blue background with white text
@@ -24,6 +22,8 @@ extension SelectionsView {
                         Label("Zoom to Fill", systemImage: "rectangle.inset.filled")
                     }
                     .buttonStyle(PlainButtonStyle())
+                    // Reposition button with popover (now left of Zoom to Fill)
+                    RepositionButton()
                     .padding(.horizontal, 10)
                     .padding(.vertical, 3)
                     .background(Color.blue)
