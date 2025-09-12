@@ -107,10 +107,10 @@ struct ImageProcessor {
                 
                 print("Debug: maxOffsets: (\(maxOffsetX), \(maxOffsetY))")
                 
-                // Apply offsets with inversion to match UI movement
+                // Apply offsets without inversion since they are already in draw coordinate space
                 if maxOffsetX > 0 || maxOffsetY > 0 {
-                    drawRect.origin.x += CGFloat(-item.offsetX) * maxOffsetX
-                    drawRect.origin.y += CGFloat(-item.offsetY) * maxOffsetY
+                    drawRect.origin.x += CGFloat(item.offsetX) * maxOffsetX
+                    drawRect.origin.y += CGFloat(item.offsetY) * maxOffsetY
                 }
                 
                 print("Debug: final drawRect: \(drawRect)")
@@ -326,10 +326,10 @@ struct ImageProcessor {
             maxOffsetY = (imageHeight - contentRect.height) / 2
         }
         
-        // Apply offsets with inversion
+        // Apply offsets without inversion since they are already in draw coordinate space
         if maxOffsetX > 0 || maxOffsetY > 0 {
-            drawRect.origin.x += CGFloat(-item.offsetX) * maxOffsetX
-            drawRect.origin.y += CGFloat(-item.offsetY) * maxOffsetY
+            drawRect.origin.x += CGFloat(item.offsetX) * maxOffsetX
+            drawRect.origin.y += CGFloat(item.offsetY) * maxOffsetY
         }
         
         print("Debug: Reel frame: maxOffsets=(\(maxOffsetX), \(maxOffsetY)), finalRect=\(drawRect)")
