@@ -217,7 +217,7 @@ struct FinalPreviewView: View {
                             if model.project.cropEnabled {
                                 Button {
                                     Task {
-                                        await runExport(square: false, carousel: true, reel: false)
+                                        await runExport(carousel: true, reel: false)
                                     }
                                 } label: {
                                     Label("4:5 Carousel", systemImage: "square.grid.2x2")
@@ -228,7 +228,7 @@ struct FinalPreviewView: View {
 
                                 Button {
                                     Task {
-                                        await runExport(square: false, carousel: false, reel: true)
+                                        await runExport(carousel: false, reel: true)
                                     }
                                 } label: {
                                     Label("9:16 Reel", systemImage: "film")
@@ -239,7 +239,7 @@ struct FinalPreviewView: View {
 
                                 Button {
                                     Task {
-                                        await runExport(square: false, carousel: true, reel: true)
+                                        await runExport(carousel: true, reel: true)
                                     }
                                 } label: {
                                     Label("Both", systemImage: "square.grid.2x2.fill")
@@ -250,7 +250,7 @@ struct FinalPreviewView: View {
                             } else {
                                 Button {
                                     Task {
-                                        await runExport(square: false, carousel: false, reel: false)
+                                        await runExport(carousel: false, reel: false)
                                     }
                                 } label: {
                                     Label("Original Images", systemImage: "photo.on.rectangle.angled")
@@ -425,7 +425,7 @@ struct FinalPreviewView: View {
         return ref
     }
 
-    private func runExport(square: Bool, carousel: Bool, reel: Bool) async {
+    private func runExport(carousel: Bool, reel: Bool) async {
         guard model.project.outputPath != nil else {
             statusMessage = "Set an output folder first."
             return
@@ -453,36 +453,17 @@ struct FinalPreviewView: View {
             try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
 
             var totalSteps = 0
-            if square { totalSteps += 1 }
             if carousel { totalSteps += 1 }
             if reel { totalSteps += 1 }
             // If no crop mode, just copy original images
-            if !model.project.cropEnabled && !square && !carousel && !reel { totalSteps = 1 }
+            if !model.project.cropEnabled && !carousel && !reel { totalSteps = 1 }
             
             var step = 0
             var exportedURLs: [URL] = []
 
             if model.project.cropEnabled {
-                // Export square images (keep for backwards compatibility, but not exposed in UI)
+                // Square export has been removed as it's no longer needed
                 if square {
-                    await MainActor.run { statusMessage = "Exporting square images…" }
-                    let squareOut = outDir.appendingPathComponent("Square", isDirectory: true)
-                    try FileManager.default.createDirectory(at: squareOut, withIntermediateDirectories: true)
-
-                    let urls = try ImageProcessor.exportSquareImages(
-                        enabledImagesOrdered,
-                        outputDir: squareOut,
-                        borderPx: model.project.squareBorderPx,
-                        zoomToFill: model.project.zoomToFill, // Use global zoom setting
-                        background: NSColor(
-                            srgbRed: model.project.squareBorderColor.red,
-                            green: model.project.squareBorderColor.green,
-                            blue: model.project.squareBorderColor.blue,
-                            alpha: 1
-                        )
-                    )
-                    exportedURLs.append(contentsOf: urls)
-
                     step += 1
                     await MainActor.run { progress = Double(step) / Double(max(totalSteps, 1)) }
                 }
@@ -500,6 +481,12 @@ struct FinalPreviewView: View {
                         blue: model.project.carouselBorderColor.blue,
                         alpha: 1
                     )
+                    
+                    // Debug log to verify image states
+                    print("Debug: Exporting images with offsets:")
+                    for image in enabledImagesOrdered {
+                        print(" - Image \(image.url.lastPathComponent): offsetX=\(image.offsetX), offsetY=\(image.offsetY)")
+                    }
 
                     let urls = try ImageProcessor.exportCarouselImages(
                         enabledImagesOrdered,

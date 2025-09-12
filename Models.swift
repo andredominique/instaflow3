@@ -78,8 +78,6 @@ struct Project: Identifiable, Codable {
     var reelBorderPx: Int = 0
     var reelBorderColor: ColorData = .black
     var reelSecondsPerImage: Double = 2.0
-    var squareBorderPx: Int = 0
-    var squareBorderColor: ColorData = .white
 
     // Export/misc
     var saveCaptionTxt: Bool = true
