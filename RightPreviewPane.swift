@@ -370,7 +370,7 @@ struct RightPreviewPane: View {
     private var header: some View {
         HStack {
             Spacer()
-            Text("visualiser")
+            Text("Visualiser")
                 .font(.headline)
                 .foregroundStyle(.primary)
             Spacer()
