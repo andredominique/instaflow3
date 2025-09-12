@@ -39,162 +39,164 @@ struct RightPreviewPane: View {
         if isReelAspect {
             return useModernRatio ? 9.0 / 17.5 : 9.0 / 16.0
         } else {
-            return model.project.aspect.aspect
-        }
-    }
-    
-    private var isReelAspect: Bool { model.project.aspect == .story9x16 }
-    private var isPostAspect: Bool { abs(model.project.aspect.aspect - (4.0 / 5.0)) < 0.01 }
+            var body: some View {
+                VStack(spacing: 0) {
+                    header
+                        .background(Color.adaptiveBackground)
+                    Divider()
+                        .background(Color.adaptiveLine)
+                    mainPreviewContent
+                }
+                .frame(width: paneWidth, alignment: .topLeading)
+                .frame(maxHeight: .infinity, alignment: .topLeading)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipped()
+                .onAppear {
+                    if !aspectInitialized { aspectInitialized = true }
+                    clampIndex()
+                    if !isPlaying && !slides.isEmpty && slides.count > 1 {
+                        startSlideshow()
+                    }
+                    applyAppearance()
+                    NotificationCenter.default.addObserver(forName: Notification.Name("TapTempoChanged"), object: nil, queue: .main) { notification in
+                        if let newSpeed = notification.object as? Double {
+                            slideshowSpeed = newSpeed
+                        }
+                    }
+                }
+                .onChange(of: imagesSignature) { _, _ in
+                    clampIndex()
+                    if isPlaying {
+                        stopSlideshow()
+                        if !slides.isEmpty && slides.count > 1 {
+                            startSlideshow()
+                        }
+                    }
+                }
+                .onChange(of: slideshowSpeed) { _, _ in
+                    if isPlaying {
+                        stopSlideshow()
+                        startSlideshow()
+                    }
+                }
+                .onDisappear {
+                    stopSlideshow()
+                }
 
-    private var borderPx: Int {
-        if !model.project.cropEnabled { return 0 }
-        return isReelAspect ? model.project.reelBorderPx : model.project.carouselBorderPx
-    }
+            }
 
-    private var borderColor: Color {
-        if !model.project.cropEnabled {
-            return .clear
-        }
-        if isReelAspect {
-            return model.project.reelBorderColor.swiftUIColor
-        } else {
-            return model.project.carouselBorderColor.swiftUIColor
-        }
-    }
-
-    private var screenPaddingCurrent: CGFloat {
-        isReelAspect ? screenPaddingStory : screenPaddingCarousel
-    }
-    
-    // Current vertical shift based on toggle state
-    private var currentVerticalShift: CGFloat {
-        if (!isReelAspect) { return 0 }
-        return useModernRatio ? reelVerticalShiftOn : reelVerticalShiftOff
-    }
-    
-    // Show Instagram Reel UI elements based on original toggle
-    private var showReelUI: Bool {
-        return isReelAspect && useModernRatio
-    }
-    
-    // Show Instagram Carousel UI elements based on new toggle
-    private var showCarouselUI: Bool {
-        return isPostAspect && simulateCarouselUI
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            header
-                .background(Color.adaptiveBackground)
-            Divider()
-                .background(Color.adaptiveLine)
-            VStack(alignment: .leading, spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: phoneCorner, style: .continuous)
-                        .fill(Color.clear)
-                        .background(
-                            Group {
-                                if isReelAspect && showReelUI {
-                                    // Show REELBG when Simulate Phone is active for reel
-                                    Image("REELBG")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                } else if isPostAspect && showCarouselUI {
-                                    // Show POSTBG when Simulate Phone is active for carousel
-                                    Image("POSTBG")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                } else {
-                                    Color.black
+            // Refactored main preview content to help compiler
+            private var mainPreviewContent: some View {
+                VStack(alignment: .leading, spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: phoneCorner, style: .continuous)
+                            .fill(Color.clear)
+                            .background(
+                                Group {
+                                    if isReelAspect && showReelUI {
+                                        Image("REELBG")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                    } else if isPostAspect && showCarouselUI {
+                                        Image("POSTBG")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                    } else {
+                                        Color.black
+                                    }
                                 }
-                            }
+                                .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
+                            )
+                            .overlay(
+                                GeometryReader { containerGeo in
+                                    VStack {
+                                        AspectContent(
+                                            item: currentItem,
+                                            aspect: contentAspect,
+                                            cornerRadius: 0,
+                                            zoomToFill: model.project.zoomToFill,
+                                            borderPx: borderPx * 2,
+                                            borderColor: borderColor,
+                                            baseWidth: 1080,
+                                            cropEnabled: model.project.cropEnabled,
+                                            topPadding: screenPaddingCurrent,
+                                            forceAspect: true
+                                        )
+                                        .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
+                                        .offset(y: currentVerticalShift)
+                                    }
+                                }
+                            )
+                            .overlay(
+                                Group {
+                                    if showReelUI {
+                                        Image("INSTAREELOVERLAY")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .allowsHitTesting(false)
+                                    }
+                                }
+                            )
+                            .aspectRatio(phoneAspect, contentMode: .fit)
                             .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
-                        )
-                        .overlay(
-                            GeometryReader { containerGeo in
-                                VStack {
-                                    AspectContent(
-                                        item: currentItem,
-                                        aspect: contentAspect,
-                                        cornerRadius: 0,
-                                        zoomToFill: model.project.zoomToFill,
-                                        borderPx: borderPx * 2,
-                                        borderColor: borderColor,
-                                        baseWidth: 1080,
-                                        cropEnabled: model.project.cropEnabled,
-                                        topPadding: screenPaddingCurrent,
-                                        forceAspect: true  // Force the aspect ratio to be applied
-                                    )
-                                    .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
-                                    // Use the computed currentVerticalShift property
-                                    .offset(y: currentVerticalShift)
-                                }
-                            }
-                        )
-                        // Add Instagram Reel overlay ONLY when appropriate
-                        .overlay(
-                            Group {
-                                if showReelUI {
-                                    Image("INSTAREELOVERLAY")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .allowsHitTesting(false) // Make sure it doesn't interfere with interactions
-                                }
-                            }
-                        )
-                        .aspectRatio(phoneAspect, contentMode: .fit)
-                        // Clip to prevent content from overflowing outside the phone frame
-                        .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
+                    }
+                    .frame(height: 600)
+                    .frame(maxWidth: paneWidth - panePadding * 2)
+                    .frame(maxWidth: .infinity, alignment: .top)
+
+                    HStack(spacing: 8) {
+                        Button { prev() } label: {
+                            Image(systemName: "chevron.left")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(slides.isEmpty || slides.count <= 1)
+                        .padding(.leading, 8)
+
+                        Spacer()
+
+                        Button {
+                            toggleSlideshow()
+                        } label: {
+                            Label(
+                                isPlaying ? "Stop" : "Play",
+                                systemImage: isPlaying ? "stop.fill" : "play.fill"
+                            )
+                            .labelStyle(.titleAndIcon)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(slides.isEmpty || slides.count <= 1)
+                        .controlSize(.small)
+
+                        Picker("", selection: $slideshowSpeed) {
+                            Text("0.2s").tag(0.2)
+                            Text("0.5s").tag(0.5)
+                            Text("1s").tag(1.0)
+                            Text("2s").tag(2.0)
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 50)
+                        .controlSize(.small)
+                        .disabled(slides.isEmpty || slides.count <= 1)
+
+                        Spacer()
+
+                        Button { next() } label: {
+                            Image(systemName: "chevron.right")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(slides.isEmpty || slides.count <= 1)
+                        .padding(.trailing, 8)
+                    }
+                    .padding(.top, 6)
+
+                    Divider()
+                        .padding(.vertical, 6)
+                    // ...existing code...
                 }
-                .frame(height: 600)
-                .frame(maxWidth: paneWidth - panePadding * 2)
-                .frame(maxWidth: .infinity, alignment: .top)
-
-                HStack(spacing: 8) {
-                    Button { prev() } label: {
-                        Image(systemName: "chevron.left")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(slides.isEmpty || slides.count <= 1)
-                    .padding(.leading, 8)
-
-                    Spacer()
-
-                    Button {
-                        toggleSlideshow()
-                    } label: {
-                        Label(
-                            isPlaying ? "Stop" : "Play",
-                            systemImage: isPlaying ? "stop.fill" : "play.fill"
-                        )
-                        .labelStyle(.titleAndIcon)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(slides.isEmpty || slides.count <= 1)
-                    .controlSize(.small)
-
-                    Picker("", selection: $slideshowSpeed) {
-                        Text("0.2s").tag(0.2)
-                        Text("0.5s").tag(0.5)
-                        Text("1s").tag(1.0)
-                        Text("2s").tag(2.0)
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 50)
-                    .controlSize(.small)
-                    .disabled(slides.isEmpty || slides.count <= 1)
-
-                    Spacer()
-
-                    Button { next() } label: {
-                        Image(systemName: "chevron.right")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(slides.isEmpty || slides.count <= 1)
-                    .padding(.trailing, 8)
-                }
+                .padding(panePadding)
+            }
                 .padding(.top, 6)
 
                 Divider()
