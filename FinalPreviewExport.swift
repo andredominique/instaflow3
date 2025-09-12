@@ -25,9 +25,37 @@ struct FinalPreviewExport {
             aspectRatio: NSSize(width: aspect, height: 1.0),
             insideRect: CGRect(origin: .zero, size: size).insetBy(dx: imageInset, dy: imageInset)
         )
-        // Draw the photo
+        // Draw the photo with offsets
         if let nsImg = imageProvider(item) {
-            nsImg.draw(in: imageRect, from: .zero, operation: .sourceOver, fraction: 1.0)
+            let imageAspect = nsImg.size.width / nsImg.size.height
+            let containerAspect = imageRect.width / imageRect.height
+            
+            var drawRect = imageRect
+            
+            // Calculate offsets
+            let maxOffsetX: CGFloat
+            if imageAspect > containerAspect {
+                let imageWidth = drawRect.height * imageAspect
+                let overflow = imageWidth - drawRect.width
+                maxOffsetX = overflow / 2
+            } else {
+                maxOffsetX = 0
+            }
+            
+            let maxOffsetY: CGFloat
+            if imageAspect < containerAspect {
+                let imageHeight = drawRect.width / imageAspect
+                let overflow = imageHeight - drawRect.height
+                maxOffsetY = overflow / 2
+            } else {
+                maxOffsetY = 0
+            }
+            
+            // Apply offsets
+            drawRect.origin.x += CGFloat(item.offsetX) * maxOffsetX
+            drawRect.origin.y += CGFloat(item.offsetY) * maxOffsetY
+            
+            nsImg.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0)
         }
         // Draw the border on a rect inset by half border width from the canvas
         if borderWidth > 0 {
