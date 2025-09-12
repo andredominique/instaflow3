@@ -307,9 +307,6 @@ struct SelectionsView: View {
         // Save state after zoom
         saveToHistory()
     }
-    }
-    
-        }
     
     // MARK: - Undo/Redo Key Monitoring
     private func setupUndoRedoKeyMonitoring() {
