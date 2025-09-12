@@ -462,12 +462,6 @@ struct FinalPreviewView: View {
             var exportedURLs: [URL] = []
 
             if model.project.cropEnabled {
-                // Square export has been removed as it's no longer needed
-                if square {
-                    step += 1
-                    await MainActor.run { progress = Double(step) / Double(max(totalSteps, 1)) }
-                }
-
                 // Export carousel images
                 if carousel {
                     await MainActor.run { statusMessage = "Exporting carousel images…" }
