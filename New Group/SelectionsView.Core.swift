@@ -450,10 +450,10 @@ struct SelectionsView: View {
     private func resetPosition(_ item: ProjectImage) {
         // Save the current state to history before resetting
         saveToHistory()
-        guard let idx = model.project.images.firstIndex(where: { $0.id == id }) else { return }
+        guard let idx = model.project.images.firstIndex(where: { $0.id == item.id }) else { return }
         model.project.images[idx].offsetX = 0.0
         model.project.images[idx].offsetY = 0.0
-        objectWillChange.send()
+        model.objectWillChange.send()
         saveToHistory() // Save the reset state
     }
 
