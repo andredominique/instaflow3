@@ -76,7 +76,7 @@
 		4887BFEE2E466358000BE4AC /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
 		4887BFF12E466358000BE4AC /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		4887BFF22E466358000BE4AC /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		4887C0002E46635C000BE4AC /* InstaFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = InstaFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4887C0002E46635C000BE4AC /* CreateFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CreateFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4887C0062E46644A000BE4AC /* OptionsCaptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionsCaptionsView.swift; sourceTree = "<group>"; };
 		4887C0092E466466000BE4AC /* FolderPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPickerView.swift; sourceTree = "<group>"; };
 		4887C00B2E4666AD000BE4AC /* FinalPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalPreviewView.swift; sourceTree = "<group>"; };
@@ -86,8 +86,8 @@
 		4887C0412E47A49B000BE4AC /* ChatStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStore.swift; sourceTree = "<group>"; };
 		4887C0432E47B5DC000BE4AC /* PromptStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptStore.swift; sourceTree = "<group>"; };
 		4887C0492E48BF7F000BE4AC /* ChatModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatModels.swift; sourceTree = "<group>"; };
-		488DEBB12E48CA9F00D2C2E2 /* InstaFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InstaFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		488DEBB22E48CA9F00D2C2E2 /* InstaFlowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InstaFlowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		488DEBB12E48CA9F00D2C2E2 /* CreateFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CreateFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		488DEBB22E48CA9F00D2C2E2 /* CreateFlowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CreateFlowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		488DEBB32E48E6E600D2C2E2 /* RightPreviewPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightPreviewPane.swift; sourceTree = "<group>"; };
 		48A68A642E5F71FA007A0509 /* ColorOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorOption.swift; sourceTree = "<group>"; };
 		48A68A652E5F71FA007A0509 /* DraggableImageViewOld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggableImageViewOld.swift; sourceTree = "<group>"; };
@@ -153,10 +153,10 @@
 				4887C0092E466466000BE4AC /* FolderPickerView.swift */,
 				48F84F752E4CBC0F00F21C91 /* GlobalTapHotkey.swift */,
 				480228BA2E4B5DE00038293B /* ImageProcessor.swift */,
-				4887C0002E46635C000BE4AC /* InstaFlow.app */,
+				4887C0002E46635C000BE4AC /* CreateFlow.app */,
 				4887BFEB2E466358000BE4AC /* InstaFlowApp.swift */,
-				488DEBB12E48CA9F00D2C2E2 /* InstaFlowTests.xctest */,
-				488DEBB22E48CA9F00D2C2E2 /* InstaFlowUITests.xctest */,
+				488DEBB12E48CA9F00D2C2E2 /* CreateFlowTests.xctest */,
+				488DEBB22E48CA9F00D2C2E2 /* CreateFlowUITests.xctest */,
 				4887BFEC2E466358000BE4AC /* KeychainHelper.swift */,
 				4887C0122E46677F000BE4AC /* Models.swift */,
 				48A68A782E5F71FA007A0509 /* New Group */,
@@ -199,9 +199,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4887BFAA2E465EB9000BE4AC /* InstaFlow */ = {
+		4887BFAA2E465EB9000BE4AC /* CreateFlow */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4887BFCD2E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "InstaFlow" */;
+			buildConfigurationList = 4887BFCD2E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "CreateFlow" */;
 			buildPhases = (
 				4887BFA72E465EB9000BE4AC /* Sources */,
 				4887BFA82E465EB9000BE4AC /* Frameworks */,
@@ -211,16 +211,16 @@
 			);
 			dependencies = (
 			);
-			name = InstaFlow;
+			name = CreateFlow;
 			packageProductDependencies = (
 			);
 			productName = InstaFlow;
-			productReference = 4887C0002E46635C000BE4AC /* InstaFlow.app */;
+			productReference = 4887C0002E46635C000BE4AC /* CreateFlow.app */;
 			productType = "com.apple.product-type.application";
 		};
-		4887BFB82E465EBB000BE4AC /* InstaFlowTests */ = {
+		4887BFB82E465EBB000BE4AC /* CreateFlowTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4887BFD02E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "InstaFlowTests" */;
+			buildConfigurationList = 4887BFD02E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "CreateFlowTests" */;
 			buildPhases = (
 				4887BFB52E465EBB000BE4AC /* Sources */,
 				4887BFB62E465EBB000BE4AC /* Frameworks */,
@@ -231,16 +231,16 @@
 			dependencies = (
 				4887BFBB2E465EBB000BE4AC /* PBXTargetDependency */,
 			);
-			name = InstaFlowTests;
+			name = CreateFlowTests;
 			packageProductDependencies = (
 			);
 			productName = InstaFlowTests;
-			productReference = 488DEBB12E48CA9F00D2C2E2 /* InstaFlowTests.xctest */;
+			productReference = 488DEBB12E48CA9F00D2C2E2 /* CreateFlowTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		4887BFC22E465EBB000BE4AC /* InstaFlowUITests */ = {
+		4887BFC22E465EBB000BE4AC /* CreateFlowUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4887BFD32E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "InstaFlowUITests" */;
+			buildConfigurationList = 4887BFD32E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "CreateFlowUITests" */;
 			buildPhases = (
 				4887BFBF2E465EBB000BE4AC /* Sources */,
 				4887BFC02E465EBB000BE4AC /* Frameworks */,
@@ -251,11 +251,11 @@
 			dependencies = (
 				4887BFC52E465EBB000BE4AC /* PBXTargetDependency */,
 			);
-			name = InstaFlowUITests;
+			name = CreateFlowUITests;
 			packageProductDependencies = (
 			);
 			productName = InstaFlowUITests;
-			productReference = 488DEBB22E48CA9F00D2C2E2 /* InstaFlowUITests.xctest */;
+			productReference = 488DEBB22E48CA9F00D2C2E2 /* CreateFlowUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -296,9 +296,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4887BFAA2E465EB9000BE4AC /* InstaFlow */,
-				4887BFB82E465EBB000BE4AC /* InstaFlowTests */,
-				4887BFC22E465EBB000BE4AC /* InstaFlowUITests */,
+				4887BFAA2E465EB9000BE4AC /* CreateFlow */,
+				4887BFB82E465EBB000BE4AC /* CreateFlowTests */,
+				4887BFC22E465EBB000BE4AC /* CreateFlowUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -394,12 +394,12 @@
 /* Begin PBXTargetDependency section */
 		4887BFBB2E465EBB000BE4AC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 4887BFAA2E465EB9000BE4AC /* InstaFlow */;
+			target = 4887BFAA2E465EB9000BE4AC /* CreateFlow */;
 			targetProxy = 4887BFBA2E465EBB000BE4AC /* PBXContainerItemProxy */;
 		};
 		4887BFC52E465EBB000BE4AC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 4887BFAA2E465EB9000BE4AC /* InstaFlow */;
+			target = 4887BFAA2E465EB9000BE4AC /* CreateFlow */;
 			targetProxy = 4887BFC42E465EBB000BE4AC /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -537,6 +537,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CreateFlow;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -545,7 +546,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = andremoonen.CreateFlow;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = CreateFlow;
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -567,6 +568,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CreateFlow;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -575,7 +577,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = andremoonen.CreateFlow;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = CreateFlow;
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -658,7 +660,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4887BFCD2E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "InstaFlow" */ = {
+		4887BFCD2E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "CreateFlow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4887BFCE2E465EBB000BE4AC /* Debug */,
@@ -667,7 +669,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4887BFD02E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "InstaFlowTests" */ = {
+		4887BFD02E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "CreateFlowTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4887BFD12E465EBB000BE4AC /* Debug */,
@@ -676,7 +678,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4887BFD32E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "InstaFlowUITests" */ = {
+		4887BFD32E465EBB000BE4AC /* Build configuration list for PBXNativeTarget "CreateFlowUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4887BFD42E465EBB000BE4AC /* Debug */,
