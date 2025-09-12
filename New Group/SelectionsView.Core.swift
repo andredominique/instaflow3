@@ -132,17 +132,14 @@ struct SelectionsView: View {
             setupShiftKeyMonitoring()
             setupUndoRedoKeyMonitoring()
             
-            // Set up history observer for both manual saves and state loads
+            // Save history when position changes occur
             NotificationCenter.default.addObserver(
                 forName: .saveRepositionHistory,
                 object: nil,
                 queue: .main
             ) { notification in
-                if let images = notification.object as? [ProjectImage] {
-                    // Load state from history
-                    model.project.images = images
-                } else {
-                    // Regular history save
+                // Only save if we're actively modifying
+                if let _ = notification.object as? AppModel {
                     saveToHistory()
                 }
             }
@@ -451,9 +448,13 @@ struct SelectionsView: View {
     }
     
     private func resetPosition(_ item: ProjectImage) {
-        guard let idx = model.project.images.firstIndex(where: { $0.id == item.id }) else { return }
-        // Use the model's setCropOffset to ensure history is saved
-        model.setCropOffset(for: item.id, offsetX: 0.0, offsetY: 0.0)
+        // Save the current state to history before resetting
+        saveToHistory()
+        guard let idx = model.project.images.firstIndex(where: { $0.id == id }) else { return }
+        model.project.images[idx].offsetX = 0.0
+        model.project.images[idx].offsetY = 0.0
+        objectWillChange.send()
+        saveToHistory() // Save the reset state
     }
 
     // MARK: - Mac Color Picker Function
