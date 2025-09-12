@@ -97,18 +97,30 @@ final class AppModel: ObservableObject {
     // Set crop offset for repositioning
     func setCropOffset(for id: UUID, offsetX: Double, offsetY: Double) {
         if let idx = project.images.firstIndex(where: { $0.id == id }) {
-            // Save to history before making changes
-            saveRepositionHistory()
+            // Create a deep copy of images for history
+            let oldImages = project.images.map { $0 }
             
+            // Update the image's offset
             project.images[idx].offsetX = offsetX
             project.images[idx].offsetY = offsetY
+            
+            // Save the old state to history
+            NotificationCenter.default.post(name: .saveRepositionHistory, object: oldImages)
             objectWillChange.send()
         }
     }
     
-    // NEW: Save repositioning history function
+    // For loading history state
+    func loadImagesFromHistory(_ images: [ProjectImage]) {
+        project.images = images
+        objectWillChange.send()
+    }
+    
+    // Save current state to history
     func saveRepositionHistory() {
-        NotificationCenter.default.post(name: .saveRepositionHistory, object: self)
+        // Create a deep copy of current images for history
+        let currentImages = project.images.map { $0 }
+        NotificationCenter.default.post(name: .saveRepositionHistory, object: currentImages)
     }
     
     // Set aspect ratio and persist it
