@@ -107,13 +107,13 @@ struct ImageProcessor {
                 
                 print("Debug: maxOffsets: (\(maxOffsetX), \(maxOffsetY))")
                 
-                // Apply offsets without inversion since they are already in draw coordinate space
-                if maxOffsetX > 0 || maxOffsetY > 0 {
+                // Only apply repositioning if we're in zoom-to-fill mode
+                if zoomToFill && (maxOffsetX > 0 || maxOffsetY > 0) {
                     drawRect.origin.x += CGFloat(item.offsetX) * maxOffsetX
                     drawRect.origin.y += CGFloat(item.offsetY) * maxOffsetY
                 }
                 
-                print("Debug: final drawRect: \(drawRect)")
+                print("Debug: final drawRect: \(drawRect) (zoomToFill: \(zoomToFill))")
                 
                 // Draw with clipping
                 ctx.saveGState()
@@ -326,13 +326,13 @@ struct ImageProcessor {
             maxOffsetY = (imageHeight - contentRect.height) / 2
         }
         
-        // Apply offsets without inversion since they are already in draw coordinate space
-        if maxOffsetX > 0 || maxOffsetY > 0 {
+        // Only apply repositioning if we're in zoom-to-fill mode
+        if zoomToFill && (maxOffsetX > 0 || maxOffsetY > 0) {
             drawRect.origin.x += CGFloat(item.offsetX) * maxOffsetX
             drawRect.origin.y += CGFloat(item.offsetY) * maxOffsetY
         }
         
-        print("Debug: Reel frame: maxOffsets=(\(maxOffsetX), \(maxOffsetY)), finalRect=\(drawRect)")
+        print("Debug: Reel frame: maxOffsets=(\(maxOffsetX), \(maxOffsetY)), finalRect=\(drawRect) (zoomToFill: \(zoomToFill))")
         
         // Draw with clipping
         ctx.saveGState()
