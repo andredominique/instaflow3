@@ -542,4 +542,5 @@ struct SelectionsView: View {
             model.project.carouselBorderColor = colorData
         }
     }
-}
+
+```
