@@ -41,8 +41,7 @@ struct RepositionOverlayView: View {
                                     startOffsetX = item.offsetX
                                     startOffsetY = item.offsetY
                                     
-                                    // NEW: Just add this ONE line to save history when drag starts
-                                    model.saveRepositionHistory()
+                                    // Don't need history save here since setCropOffset handles it
                                 }
                                 
                                 let deltaX = value.location.x - dragStart.x
@@ -64,11 +63,12 @@ struct RepositionOverlayView: View {
                                     newOffsetY = max(-1.0, min(1.0, startOffsetY + normalizedDeltaY))
                                 }
                                 
-                                // Update the model in real-time
+                                // Update the model in real-time (history saving is handled in setCropOffset)
                                 model.setCropOffset(for: item.id, offsetX: newOffsetX, offsetY: newOffsetY)
                             }
                             .onEnded { _ in
                                 isDragging = false
+                                // No need for final history save since setCropOffset handles it
                             }
                     )
                 

@@ -97,6 +97,9 @@ final class AppModel: ObservableObject {
     // Set crop offset for repositioning
     func setCropOffset(for id: UUID, offsetX: Double, offsetY: Double) {
         if let idx = project.images.firstIndex(where: { $0.id == id }) {
+            // Save to history before making changes
+            saveRepositionHistory()
+            
             project.images[idx].offsetX = offsetX
             project.images[idx].offsetY = offsetY
             objectWillChange.send()
