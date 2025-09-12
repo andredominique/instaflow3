@@ -22,8 +22,6 @@ extension SelectionsView {
                         Label("Zoom to Fill", systemImage: "rectangle.inset.filled")
                     }
                     .buttonStyle(PlainButtonStyle())
-                    // Reposition button with popover (now left of Zoom to Fill)
-                    RepositionButton()
                     .padding(.horizontal, 10)
                     .padding(.vertical, 3)
                     .background(Color.blue)
