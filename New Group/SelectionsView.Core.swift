@@ -66,10 +66,16 @@ struct SelectionsView: View {
     // We keep this as @State for local view handling, but use the model.project.hasCustomOrder for persistence
     @State var haveCapturedOriginal = false
     
-    // NEW: Shift key state and hover tracking for repositioning
+    // Shift key state and hover tracking for repositioning and zooming
     @State var isShiftPressed = false
     @State var hoveredItemID: UUID? = nil
     @State var shiftKeyMonitor: Any?
+    @State var scrollGestureMonitor: Any?
+    
+    // Constants for zoom control
+    private let minZoomScale: Double = 0.5  // 50% of original size
+    private let maxZoomScale: Double = 3.0   // 300% of original size
+    private let zoomStep: Double = 0.1      // 10% per scroll unit
 
     private var currentAppearance: ColorScheme? {
         switch selectedAppearance {
@@ -239,8 +245,9 @@ struct SelectionsView: View {
         return showDisabled ? sorted : sorted.filter { !$0.disabled }
     }
 
-    // MARK: - Shift Key Monitoring
+    // MARK: - Shift Key and Scroll Monitoring
     private func setupShiftKeyMonitoring() {
+        // Monitor shift key state
         shiftKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) { event in
             let isShiftCurrentlyPressed = event.modifierFlags.contains(.shift)
             
@@ -255,6 +262,17 @@ struct SelectionsView: View {
             
             return event
         }
+        
+        // Monitor scroll gestures
+        scrollGestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
+            if isShiftPressed && hoveredItemID != nil {
+                DispatchQueue.main.async {
+                    handleZoomGesture(deltaY: event.deltaY, forImageId: hoveredItemID!)
+                }
+                return nil // Consume the event when we're zooming
+            }
+            return event // Pass through all other scroll events
+        }
     }
     
     private func tearDownShiftKeyMonitoring() {
@@ -262,6 +280,33 @@ struct SelectionsView: View {
             NSEvent.removeMonitor(monitor)
             shiftKeyMonitor = nil
         }
+        if let monitor = scrollGestureMonitor {
+            NSEvent.removeMonitor(monitor)
+            scrollGestureMonitor = nil
+        }
+    }
+    
+    private func handleZoomGesture(deltaY: CGFloat, forImageId: UUID) {
+        // Save state before zoom
+        saveToHistory()
+        
+        // Find the image
+        guard let idx = model.project.images.firstIndex(where: { $0.id == forImageId }) else { return }
+        
+        // Calculate new zoom scale (negative deltaY means scroll up/zoom in)
+        let zoomDelta = -Double(deltaY) * zoomStep
+        var newScale = model.project.images[idx].zoomScale + zoomDelta
+        
+        // Clamp to min/max values
+        newScale = min(max(newScale, minZoomScale), maxZoomScale)
+        
+        // Apply the new zoom scale
+        model.project.images[idx].zoomScale = newScale
+        model.objectWillChange.send()
+        
+        // Save state after zoom
+        saveToHistory()
+    }
     }
     
     // MARK: - Undo/Redo Key Monitoring

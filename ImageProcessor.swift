@@ -76,16 +76,23 @@ struct ImageProcessor {
                 )
                 
                 let srcSize = CGSize(width: cg.width, height: cg.height)
-                let scaled = zoomToFill
+                // Get base size
+                let baseScaled = zoomToFill
                     ? aspectFillSize(source: srcSize, into: contentRect.size)
                     : aspectFitSize(source: srcSize, into: contentRect.size)
                 
+                // Apply zoom scale
+                let zoomScaled = CGSize(
+                    width: baseScaled.width * CGFloat(item.zoomScale),
+                    height: baseScaled.height * CGFloat(item.zoomScale)
+                )
+                
                 // Center the image
                 var drawRect = CGRect(
-                    x: contentRect.midX - scaled.width / 2,
-                    y: contentRect.midY - scaled.height / 2,
-                    width: scaled.width,
-                    height: scaled.height
+                    x: contentRect.midX - zoomScaled.width / 2,
+                    y: contentRect.midY - zoomScaled.height / 2,
+                    width: zoomScaled.width,
+                    height: zoomScaled.height
                 )
                 
                 // Calculate maximum possible offsets
@@ -298,15 +305,22 @@ struct ImageProcessor {
         )
         
         let srcSize = CGSize(width: cg.width, height: cg.height)
-        let scaled = zoomToFill
+        // Get base size
+        let baseScaled = zoomToFill
             ? aspectFillSize(source: srcSize, into: contentRect.size)
             : aspectFitSize(source: srcSize, into: contentRect.size)
         
+        // Apply zoom scale
+        let zoomScaled = CGSize(
+            width: baseScaled.width * CGFloat(item.zoomScale),
+            height: baseScaled.height * CGFloat(item.zoomScale)
+        )
+        
         var drawRect = CGRect(
-            x: contentRect.midX - scaled.width / 2,
-            y: contentRect.midY - scaled.height / 2,
-            width: scaled.width,
-            height: scaled.height
+            x: contentRect.midX - zoomScaled.width / 2,
+            y: contentRect.midY - zoomScaled.height / 2,
+            width: zoomScaled.width,
+            height: zoomScaled.height
         )
         
         // Calculate offsets

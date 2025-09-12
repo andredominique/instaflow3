@@ -49,6 +49,9 @@ struct ProjectImage: Identifiable, Codable {
     // Repositioning offset (normalized)
     var offsetX: Double = 0.0
     var offsetY: Double = 0.0
+    
+    // Zoom scale (1.0 = original size, > 1.0 = zoomed in, < 1.0 = zoomed out)
+    var zoomScale: Double = 1.0
 
     init(id: UUID = UUID(), url: URL, orderIndex: Int, disabled: Bool = false) {
         self.id = id
