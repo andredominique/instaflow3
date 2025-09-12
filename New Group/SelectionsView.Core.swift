@@ -309,6 +309,8 @@ struct SelectionsView: View {
     }
     }
     
+        }
+    
     // MARK: - Undo/Redo Key Monitoring
     private func setupUndoRedoKeyMonitoring() {
         undoRedoKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
@@ -542,5 +544,3 @@ struct SelectionsView: View {
             model.project.carouselBorderColor = colorData
         }
     }
-
-```
