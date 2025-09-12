@@ -86,9 +86,13 @@ struct RightPreviewPane: View {
         VStack(spacing: 0) {
             header
                 .background(Color.adaptiveBackground)
+                .frame(maxWidth: .infinity)
+                .zIndex(1)
             Divider()
                 .background(Color.adaptiveLine)
-            VStack(alignment: .leading, spacing: 12) {
+                .zIndex(1)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: phoneCorner, style: .continuous)
                         .fill(Color.clear)
@@ -321,8 +325,10 @@ struct RightPreviewPane: View {
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 }
+                }
+                .padding(panePadding)
+                .frame(maxWidth: .infinity)
             }
-            .padding(panePadding)
         }
         .frame(width: paneWidth, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .topLeading)
@@ -364,14 +370,14 @@ struct RightPreviewPane: View {
     private var header: some View {
         HStack {
             Spacer()
-            Text("Slideshow Preview")
+            Text("visualiser")
                 .font(.headline)
                 .foregroundStyle(.primary)
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .frame(height: 70)
+        .frame(minHeight: 70, maxHeight: 70)
     }
 
     private var currentItem: ProjectImage? {
