@@ -5,6 +5,8 @@ import SwiftUI
 extension SelectionsView {
     var controls: some View {
         HStack(spacing: 12) {
+            // Reposition button with popover
+            RepositionButton()
             Text("Style Images:")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
@@ -241,4 +243,25 @@ extension SelectionsView {
     .padding(.trailing, 4) // Reduced right padding
     .padding(.vertical, 10)
     }
+// MARK: - Reposition Button with Popover
+private struct RepositionButton: View {
+    @State private var showPopover = false
+    var body: some View {
+        Button {
+            showPopover.toggle()
+        } label: {
+            Label("Reposition", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+        }
+        .buttonStyle(BorderedButtonStyle())
+        .popover(isPresented: $showPopover, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("To reposition images within with crop, hold down shift + click and drag over the thumbnails below")
+                    .font(.body)
+                    .padding()
+            }
+            .frame(width: 320)
+        }
+        .help("Show instructions for repositioning images")
+    }
+}
 }
