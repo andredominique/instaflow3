@@ -364,7 +364,7 @@ struct RightPreviewPane: View {
     private var header: some View {
         HStack {
             Spacer()
-            Text("Slideshow Preview")
+            Text("visualiser")
                 .font(.headline)
                 .foregroundStyle(.primary)
             Spacer()
@@ -372,6 +372,7 @@ struct RightPreviewPane: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .frame(height: 70)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var currentItem: ProjectImage? {
@@ -432,153 +433,158 @@ struct BlueToggleStyle: ToggleStyle {
             ZStack {
                 // Track (both sides blue)
                 Capsule()
-                    .fill(Color.blue.opacity(0.5))
-                    .frame(width: 50, height: 24)
-                
-                // Thumb
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 22, height: 22)
-                    .shadow(radius: 1)
-                    .offset(x: configuration.isOn ? 13 : -13)
-                    .animation(.spring(response: 0.2), value: configuration.isOn)
-                
-                // Hit target for toggle
-                Color.clear
-                    .frame(width: 50, height: 24)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        configuration.isOn.toggle()
-                    }
-            }
-        }
-    }
-}
+                    VStack(spacing: 0) {
+                        header
+                            .background(Color.adaptiveBackground)
+                        Divider()
+                            .background(Color.adaptiveLine)
+                        GeometryReader { geo in
+                            ScrollView(.vertical, showsIndicators: true) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: phoneCorner, style: .continuous)
+                                            .fill(Color.clear)
+                                            .background(
+                                                Group {
+                                                    if isReelAspect && showReelUI {
+                                                        Image("REELBG")
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                    } else if isPostAspect && showCarouselUI {
+                                                        Image("POSTBG")
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                    } else {
+                                                        Color.black
+                                                    }
+                                                }
+                                                .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
+                                            )
+                                            .overlay(
+                                                GeometryReader { containerGeo in
+                                                    VStack {
+                                                        AspectContent(
+                                                            item: currentItem,
+                                                            aspect: contentAspect,
+                                                            cornerRadius: 0,
+                                                            zoomToFill: model.project.zoomToFill,
+                                                            borderPx: borderPx * 2,
+                                                            borderColor: borderColor,
+                                                            baseWidth: 1080,
+                                                            cropEnabled: model.project.cropEnabled,
+                                                            topPadding: screenPaddingCurrent,
+                                                            forceAspect: true
+                                                        )
+                                                        .frame(maxWidth: containerGeo.size.width, maxHeight: containerGeo.size.height)
+                                                        .offset(y: currentVerticalShift)
+                                                    }
+                                                }
+                                            )
+                                            .overlay(
+                                                Group {
+                                                    if showReelUI {
+                                                        Image("INSTAREELOVERLAY")
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fit)
+                                                            .allowsHitTesting(false)
+                                                    }
+                                                }
+                                            )
+                                            .aspectRatio(phoneAspect, contentMode: .fit)
+                                            .clipShape(RoundedRectangle(cornerRadius: phoneCorner, style: .continuous))
+                                    }
+                                    .frame(height: 600)
+                                    .frame(maxWidth: paneWidth - panePadding * 2)
+                                    .frame(maxWidth: .infinity, alignment: .top)
 
-private struct AspectContent: View {
-    let item: ProjectImage?
-    let aspect: CGFloat
-    let cornerRadius: CGFloat
-    let zoomToFill: Bool
-    let borderPx: Int
-    let borderColor: Color
-    let baseWidth: CGFloat
-    let cropEnabled: Bool
-    let topPadding: CGFloat
-    let forceAspect: Bool // New parameter to force aspect ratio
+                                    HStack(spacing: 8) {
+                                        Button { prev() } label: {
+                                            Image(systemName: "chevron.left")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                        .disabled(slides.isEmpty || slides.count <= 1)
+                                        .padding(.leading, 8)
 
-    @State private var image: NSImage?
-    @State private var imageAspect: CGFloat = 1.0
+                                        Spacer()
 
-    private func maxOffsetX(for containerSize: CGSize) -> CGFloat {
-        guard cropEnabled && zoomToFill else { return 0 }
-        if imageAspect > aspect {
-            let imageWidth = containerSize.height * imageAspect
-            let overflow = imageWidth - containerSize.width
-            return overflow / 2
-        }
-        return 0
-    }
+                                        Button {
+                                            toggleSlideshow()
+                                        } label: {
+                                            Label(
+                                                isPlaying ? "Stop" : "Play",
+                                                systemImage: isPlaying ? "stop.fill" : "play.fill"
+                                            )
+                                            .labelStyle(.titleAndIcon)
+                                        }
+                                        .buttonStyle(.borderedProminent)
+                                        .disabled(slides.isEmpty || slides.count <= 1)
+                                        .controlSize(.small)
 
-    private func maxOffsetY(for containerSize: CGSize) -> CGFloat {
-        guard cropEnabled && zoomToFill else { return 0 }
-        if imageAspect < aspect {
-            let imageHeight = containerSize.width / imageAspect
-            let overflow = imageHeight - containerSize.height
-            return overflow / 2
-        }
-        return 0
-    }
+                                        Picker("", selection: $slideshowSpeed) {
+                                            Text("0.2s").tag(0.2)
+                                            Text("0.5s").tag(0.5)
+                                            Text("1s").tag(1.0)
+                                            Text("2s").tag(2.0)
+                                        }
+                                        .pickerStyle(.menu)
+                                        .frame(width: 50)
+                                        .controlSize(.small)
+                                        .disabled(slides.isEmpty || slides.count <= 1)
 
-    private func load() {
-        guard let url = item?.url else {
-            image = nil
-            imageAspect = 1.0
-            return
-        }
-        if let loadedImage = NSImage(contentsOf: url) {
-            image = loadedImage
-            imageAspect = loadedImage.size.width / loadedImage.size.height
-        } else {
-            image = nil
-            imageAspect = 1.0
-        }
-    }
+                                        Spacer()
 
-    var body: some View {
-        GeometryReader { geo in
-            // Border as background, image is padded inside
-            ZStack {
-                RoundedRectangle(cornerRadius: 0, style: .continuous)
-                    .fill(borderColor)
-                Group {
-                    if let img = image, let item = item {
-                        if cropEnabled {
-                            let rawPad = CGFloat(borderPx) / baseWidth * geo.size.width
-                            let maxPad = max(0, min(rawPad, min(geo.size.width, geo.size.height) / 2 - 0.5))
-                            let innerW = max(0, geo.size.width  - maxPad * 2)
-                            let innerH = max(0, geo.size.height - maxPad * 2)
-                            GeometryReader { innerGeo in
-                                Image(nsImage: img)
-                                    .resizable()
-                                    .modifier(ZoomModifier(zoomToFill: zoomToFill))
-                                    .offset(
-                                        x: zoomToFill ? CGFloat(item.offsetX) * maxOffsetX(for: CGSize(width: innerW, height: innerH)) : 0,
-                                        y: zoomToFill ? CGFloat(item.offsetY) * maxOffsetY(for: CGSize(width: innerW, height: innerH)) : 0
-                                    )
-                                    .frame(width: innerW - maxPad * 2, height: innerH - maxPad * 2)
-                                    .clipped()
-                                    .padding(maxPad)
+                                        Button { next() } label: {
+                                            Image(systemName: "chevron.right")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                        .disabled(slides.isEmpty || slides.count <= 1)
+                                        .padding(.trailing, 8)
+                                    }
+                                    .padding(.top, 6)
+
+                                    Divider()
+                                        .padding(.vertical, 6)
+                                    // ...existing code...
+                                }
+                                .padding(panePadding)
+                                .frame(minHeight: geo.size.height - 70) // Ensure content fills available space below header
                             }
-                            .frame(width: innerW, height: innerH)
-                            .position(x: geo.size.width / 2, y: geo.size.height / 2)
-                            .padding(.top, topPadding)
-                        } else {
-                            Image(nsImage: img)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(CGFloat(borderPx) * 1.2)
-                                .background(Color.clear)
-                                .padding(.top, topPadding)
                         }
-                    } else if item != nil {
-                        Color.gray.opacity(0.15).overlay(ProgressView())
-                    } else {
-                        Color.gray.opacity(0.08).overlay(
-                            VStack(spacing: 8) {
-                                Image(systemName: "photo")
-                                Text("No images")
-                            }
-                            .foregroundStyle(.secondary)
-                        )
                     }
-                }
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
-        }
-        // Always use the specified aspect ratio when forceAspect is true
-        .aspectRatio(cropEnabled || forceAspect ? aspect : (imageAspect > 0 ? imageAspect : 1.0), contentMode: .fit)
-        .task { load() }
-        .onChange(of: item?.url) { _, _ in load() }
-    }
-}
-
-private struct ZoomModifier: ViewModifier {
-    let zoomToFill: Bool
-
-    func body(content: Content) -> some View {
-        if zoomToFill {
-            content.scaledToFill()
-        } else {
-            content.scaledToFit()
-        }
-    }
-}
-
-extension ProjectImage {
-    var originalAspect: CGFloat? {
-        guard let image = NSImage(contentsOf: url) else { return nil }
-        return image.size.width / image.size.height
-    }
-}
+                    .frame(width: paneWidth, alignment: .topLeading)
+                    .frame(maxHeight: .infinity, alignment: .topLeading)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .clipped()
+                    .onAppear {
+                        if !aspectInitialized { aspectInitialized = true }
+                        clampIndex()
+                        if !isPlaying && !slides.isEmpty && slides.count > 1 {
+                            startSlideshow()
+                        }
+                        applyAppearance()
+                        NotificationCenter.default.addObserver(forName: Notification.Name("TapTempoChanged"), object: nil, queue: .main) { notification in
+                            if let newSpeed = notification.object as? Double {
+                                slideshowSpeed = newSpeed
+                            }
+                        }
+                    }
+                    .onChange(of: imagesSignature) { _, _ in
+                        clampIndex()
+                        if isPlaying {
+                            stopSlideshow()
+                            if !slides.isEmpty && slides.count > 1 {
+                                startSlideshow()
+                            }
+                        }
+                    }
+                    .onChange(of: slideshowSpeed) { _, _ in
+                        if isPlaying {
+                            stopSlideshow()
+                            startSlideshow()
+                        }
+                    }
+                    .onDisappear {
+                        stopSlideshow()
+                    }
