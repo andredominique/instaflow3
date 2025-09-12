@@ -5,14 +5,16 @@ import SwiftUI
 extension SelectionsView {
     var controls: some View {
         HStack(spacing: 12) {
-            // Reposition button with popover
-            RepositionButton()
             Text("Style Images:")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
                 .frame(minWidth: 100, alignment: .leading) // Ensures left alignment and label stays intact
             
             Spacer()
+            
+            // Reposition button with popover
+            RepositionButton()
+            
             Group {
                 if model.project.zoomToFill {
                     // Active state - blue background with white text
