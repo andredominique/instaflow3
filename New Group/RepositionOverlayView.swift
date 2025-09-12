@@ -30,9 +30,15 @@ struct RepositionOverlayView: View {
                     .onHover { hovering in
                         onHoverChange(hovering)
                     }
-                    .gesture(
-                        DragGesture(coordinateSpace: .local)
-                            .onChanged { value in
+                    // Pass through all non-drag events like scroll
+                    .allowsHitTesting(false)
+                    .overlay(
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(coordinateSpace: .local)
+                                    .onChanged { value in
                                 guard zoomToFill, nsImage != nil else { return }
                                 
                                 if !isDragging {
@@ -70,6 +76,7 @@ struct RepositionOverlayView: View {
                                 isDragging = false
                                 // No need for final history save since setCropOffset handles it
                             }
+                    )
                     )
                 
                 // Reposition icon - only show when hovering and zoomToFill is enabled
