@@ -8,7 +8,7 @@ extension SelectionsView {
     let bgColor = isReelAspect ? model.project.reelBorderColor.swiftUIColor : model.project.carouselBorderColor.swiftUIColor
     let borderPx = isReelAspect ? Double(model.project.reelBorderPx) : Double(model.project.carouselBorderPx)
     ZStack {
-        if draggingID == item.id && !isShiftPressed {
+        if draggingID == item.id && !(isShiftPressed || isCommandPressed) {
             // Show placeholder when dragging for reorder
             bgColor
                 .aspectRatio(model.project.aspect.aspect, contentMode: .fit)
@@ -28,7 +28,7 @@ extension SelectionsView {
                     zoomScale: item.zoomScale
                 )
                 // Reposition overlay and gesture handling
-                if isShiftPressed {
+                if isShiftPressed || isCommandPressed {
                     RepositionOverlayView(
                         item: item,
                         model: model,
@@ -69,14 +69,14 @@ extension SelectionsView {
             }
         }
         .onTapGesture(count: 1) {
-            // Single tap - toggle disabled (only when not in shift mode)
-            if !isShiftPressed {
+            // Single tap - toggle disabled (only when not in modifier key mode)
+            if !(isShiftPressed || isCommandPressed) {
                 toggleDisabled(item)
             }
         }
         .onDrag {
-            // Drag to reorder (only when not in shift mode)
-            if !isShiftPressed {
+            // Drag to reorder (only when not in modifier key mode)
+            if !(isShiftPressed || isCommandPressed) {
                 draggingID = item.id
                 return NSItemProvider(object: item.id.uuidString as NSString)
             } else {
@@ -88,6 +88,7 @@ extension SelectionsView {
             allItems: $model.project.images,
             draggingID: $draggingID,
             isShiftPressed: isShiftPressed,
+            isCommandPressed: isCommandPressed,
             saveToHistory: saveToHistory,  // NEW: Pass the history saving function
             model: model // Pass the AppModel
         ))

@@ -6,12 +6,13 @@ struct DropDelegateImpl: DropDelegate {
     @Binding var allItems: [ProjectImage]
     @Binding var draggingID: UUID?
     let isShiftPressed: Bool
+    let isCommandPressed: Bool
     let saveToHistory: () -> Void  // NEW: Add history saving callback
     @ObservedObject var model: AppModel
 
     func dropEntered(info: DropInfo) {
-        // Only allow reordering when NOT in shift mode
-        guard !isShiftPressed else { return }
+        // Only allow reordering when NOT in modifier key mode
+        guard !(isShiftPressed || isCommandPressed) else { return }
         
         guard
             let draggingID = draggingID,
@@ -32,15 +33,15 @@ struct DropDelegateImpl: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
-        if !isShiftPressed {
+        if !(isShiftPressed || isCommandPressed) {
             draggingID = nil
         }
         return true
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        // Disable drop operations when in shift mode
-        guard !isShiftPressed else { return DropProposal(operation: .forbidden) }
+        // Disable drop operations when in modifier key mode
+        guard !(isShiftPressed || isCommandPressed) else { return DropProposal(operation: .forbidden) }
         return DropProposal(operation: .move)
     }
 }
