@@ -85,17 +85,34 @@ struct SelectionsView: View {
     private let zoomStep: Double = 0.1      // 10% per scroll unit
 
     // Custom gesture recognizer for zoom
-    class MagnificationGesture: NSGestureRecognizer {
-        var onMagnify: ((CGFloat) -> Void)?
+    class ZoomGestureRecognizer: NSMagnificationGestureRecognizer {
+        private weak var selectionView: SelectionsView?
         
-        override func magnify(with event: NSEvent) {
-            if let onMagnify = onMagnify {
-                onMagnify(event.magnification)
+        init(target: SelectionsView) {
+            self.selectionView = target
+            super.init(target: nil, action: nil)
+            self.target = self
+            self.action = #selector(handleGesture(_:))
+        }
+        
+        @objc private func handleGesture(_ gesture: NSMagnificationGestureRecognizer) {
+            // Only check for Command key for zoom
+            guard let selectionView = selectionView,
+                  let hoveredId = selectionView.hoveredItemID,
+                  NSEvent.modifierFlags.contains(.command) else {
+                return
+            }
+            
+            selectionView.handleZoomGesture(deltaY: CGFloat(gesture.magnification * 10), forImageId: hoveredId)
+            
+            // Reset magnification when gesture ends
+            if gesture.state == .ended {
+                gesture.magnification = 0
             }
         }
     }
     
-    private var magnificationGesture: MagnificationGesture?
+    private var zoomGesture: ZoomGestureRecognizer?
 
     private var currentAppearance: ColorScheme? {
         switch selectedAppearance {
@@ -292,19 +309,9 @@ struct SelectionsView: View {
             return event
         }
         
-        // Set up magnification gesture for zooming
-        magnificationGesture = MagnificationGesture()
-        magnificationGesture?.onMagnify = { [weak self] magnitude in
-            guard let self = self,
-                  let hoveredId = self.hoveredItemID,
-                  NSEvent.modifierFlags.contains(.shift) && NSEvent.modifierFlags.contains(.command) else {
-                return
-            }
-            
-            self.handleZoomGesture(deltaY: Float(magnitude * 10), forImageId: hoveredId)
-        }
-        
-        if let gesture = magnificationGesture {
+        // Set up zoom gesture recognizer
+        zoomGesture = ZoomGestureRecognizer(target: self)
+        if let gesture = zoomGesture {
             NSApplication.shared.windows.first?.contentView?.addGestureRecognizer(gesture)
         }
     }
@@ -315,13 +322,13 @@ struct SelectionsView: View {
             shiftKeyMonitor = nil
         }
         
-        if let gesture = magnificationGesture {
+        if let gesture = zoomGesture {
             NSApplication.shared.windows.first?.contentView?.removeGestureRecognizer(gesture)
-            magnificationGesture = nil
+            zoomGesture = nil
         }
     }
     
-    private func handleZoomGesture(deltaY: CGFloat, forImageId: UUID) {
+    func handleZoomGesture(deltaY: CGFloat, forImageId: UUID) {
         // Save state before zoom
         saveToHistory()
         
