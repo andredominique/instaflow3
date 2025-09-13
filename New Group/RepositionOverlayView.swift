@@ -13,7 +13,9 @@ struct RepositionOverlayView: View {
     @State private var dragStart: CGPoint = .zero
     @State private var startOffsetX: Double = 0
     @State private var startOffsetY: Double = 0
+    @State private var startZoomScale: Double = 1.0
     @State private var nsImage: NSImage?
+    @State private var isCommandPressed = false
     
     private var imageAspect: CGFloat {
         guard let nsImage = nsImage else { return 1.0 }
@@ -23,58 +25,78 @@ struct RepositionOverlayView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                // Base layer for zoom handling
+                // Base layer for event handling
                 Rectangle()
                     .fill(Color.clear)
                     .contentShape(Rectangle())
                     .onHover { hovering in
                         onHoverChange(hovering)
                     }
-                
-                // Separate overlay for drag handling
-                if zoomToFill {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .contentShape(Rectangle())
-                        .gesture(
+                    .onAppear {
+                        // Setup command key monitor
+                        NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { event in
+                            isCommandPressed = event.modifierFlags.contains(.command)
+                            return event
+                        }
+                    }
+                    .gesture(
                             DragGesture(coordinateSpace: .local)
                                 .onChanged { value in
-                                guard zoomToFill, nsImage != nil else { return }
+                                guard nsImage != nil else { return }
                                 
                                 if !isDragging {
                                     isDragging = true
                                     dragStart = value.startLocation
-                                    startOffsetX = item.offsetX
-                                    startOffsetY = item.offsetY
                                     
-                                    // Save history when drag starts
-                                    NotificationCenter.default.post(
-                                        name: .saveRepositionHistory,
-                                        object: model
-                                    )
+                                    // Initialize based on current mode
+                                    if isCommandPressed {
+                                        startZoomScale = item.zoomScale
+                                    } else {
+                                        startOffsetX = item.offsetX
+                                        startOffsetY = item.offsetY
+                                        // Save history for position changes
+                                        NotificationCenter.default.post(
+                                            name: .saveRepositionHistory,
+                                            object: model
+                                        )
+                                    }
                                 }
                                 
-                                let deltaX = value.location.x - dragStart.x
-                                let deltaY = value.location.y - dragStart.y
-                                
-                                let maxX = maxHorizontalOffset(for: proxy.size)
-                                let maxY = maxVerticalOffset(for: proxy.size)
-                                
-                                var newOffsetX = item.offsetX
-                                var newOffsetY = item.offsetY
-                                
-                                if maxX > 0 {
-                                    let normalizedDeltaX = Double(deltaX / maxX)
-                                    newOffsetX = max(-1.0, min(1.0, startOffsetX + normalizedDeltaX))
+                                // Handle zoom if command is pressed
+                                if isCommandPressed {
+                                    let dragAmount = value.location.y - dragStart.y
+                                    let zoomDelta = Double(dragAmount) / 100.0 // Adjust sensitivity
+                                    let newScale = max(0.5, min(3.0, startZoomScale + zoomDelta))
+                                    
+                                    // Update zoom scale
+                                    if let idx = model.project.images.firstIndex(where: { $0.id == item.id }) {
+                                        model.project.images[idx].zoomScale = newScale
+                                        model.objectWillChange.send()
+                                    }
+                                } else {
+                                    // Handle repositioning
+                                    let deltaX = value.location.x - dragStart.x
+                                    let deltaY = value.location.y - dragStart.y
+                                    
+                                    let maxX = maxHorizontalOffset(for: proxy.size)
+                                    let maxY = maxVerticalOffset(for: proxy.size)
+                                    
+                                    var newOffsetX = item.offsetX
+                                    var newOffsetY = item.offsetY
+                                    
+                                    if maxX > 0 {
+                                        let normalizedDeltaX = Double(deltaX / maxX)
+                                        newOffsetX = max(-1.0, min(1.0, startOffsetX + normalizedDeltaX))
+                                    }
+                                    
+                                    if maxY > 0 {
+                                        let normalizedDeltaY = Double(deltaY / maxY)
+                                        newOffsetY = max(-1.0, min(1.0, startOffsetY + normalizedDeltaY))
+                                    }
+                                    
+                                    // Update position
+                                    model.setCropOffset(for: item.id, offsetX: newOffsetX, offsetY: newOffsetY)
                                 }
-                                
-                                if maxY > 0 {
-                                    let normalizedDeltaY = Double(deltaY / maxY)
-                                    newOffsetY = max(-1.0, min(1.0, startOffsetY + normalizedDeltaY))
-                                }
-                                
-                                // Update the model in real-time
-                                model.setCropOffset(for: item.id, offsetX: newOffsetX, offsetY: newOffsetY)
                             }
                             .onEnded { _ in
                                 isDragging = false
@@ -82,18 +104,30 @@ struct RepositionOverlayView: View {
                         )
                 }
                 
-                // Reposition icon - only show when hovering and zoomToFill is enabled
-                if isHovered && zoomToFill {
+                // Show appropriate icon based on mode
+                if isHovered {
                     VStack {
                         HStack {
                             Spacer()
-                            Image(systemName: "move.3d")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(Color.blue.opacity(0.8))
-                                .clipShape(Circle())
-                                .shadow(radius: 2)
+                            if isCommandPressed {
+                                // Zoom mode icon
+                                Image(systemName: "magnifyingglass.circle.fill")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(8)
+                                    .background(Color.green.opacity(0.8))
+                                    .clipShape(Circle())
+                                    .shadow(radius: 2)
+                            } else {
+                                // Reposition mode icon
+                                Image(systemName: "move.3d")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(8)
+                                    .background(Color.blue.opacity(0.8))
+                                    .clipShape(Circle())
+                                    .shadow(radius: 2)
+                            }
                             Spacer()
                         }
                         Spacer()
