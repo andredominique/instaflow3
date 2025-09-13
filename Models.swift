@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 // MARK: - Aspect Presets
-enum AspectPreset: String, Codable, CaseIterable, Identifiable {
+public enum AspectPreset: String, Codable, CaseIterable, Identifiable {
     case square1x1
     case feed4x5
     case story9x16
@@ -40,20 +40,20 @@ struct ColorData: Codable, Equatable {
 }
 
 // MARK: - Project Image
-struct ProjectImage: Identifiable, Codable {
-    let id: UUID
-    var url: URL
-    var orderIndex: Int
-    var disabled: Bool
+public struct ProjectImage: Identifiable, Codable {
+    public let id: UUID
+    public var url: URL
+    public var orderIndex: Int
+    public var disabled: Bool
 
     // Repositioning offset (normalized)
-    var offsetX: Double = 0.0
-    var offsetY: Double = 0.0
+    public var offsetX: Double = 0.0
+    public var offsetY: Double = 0.0
     
     // Zoom scale (1.0 = original size, > 1.0 = zoomed in, < 1.0 = zoomed out)
-    var zoomScale: Double = 1.0
+    public var zoomScale: Double = 1.0
 
-    init(id: UUID = UUID(), url: URL, orderIndex: Int, disabled: Bool = false) {
+    public init(id: UUID = UUID(), url: URL, orderIndex: Int, disabled: Bool = false) {
         self.id = id
         self.url = url
         self.orderIndex = orderIndex
@@ -62,7 +62,7 @@ struct ProjectImage: Identifiable, Codable {
 }
 
 // MARK: - Project
-struct Project: Identifiable, Codable {
+public struct Project: Identifiable, Codable {
     let id: UUID
 
     // Basic
