@@ -28,7 +28,7 @@ extension SelectionsView {
                     zoomScale: item.zoomScale
                 )
                 // Reposition overlay and gesture handling
-                if isShiftPressed {
+                if isShiftPressed || isCommandPressed {
                     RepositionOverlayView(
                         item: item,
                         model: model,
@@ -69,14 +69,14 @@ extension SelectionsView {
             }
         }
         .onTapGesture(count: 1) {
-            // Single tap - toggle disabled (only when not in shift mode)
-            if !isShiftPressed {
+            // Single tap - toggle disabled (only when not in modifier key mode)
+            if !(isShiftPressed || isCommandPressed) {
                 toggleDisabled(item)
             }
         }
         .onDrag {
-            // Drag to reorder (only when not in shift mode)
-            if !isShiftPressed {
+            // Drag to reorder (only when not in modifier key mode)
+            if !(isShiftPressed || isCommandPressed) {
                 draggingID = item.id
                 return NSItemProvider(object: item.id.uuidString as NSString)
             } else {

@@ -13,10 +13,8 @@ struct RepositionOverlayView: View {
     @State private var dragStart: CGPoint = .zero
     @State private var startOffsetX: Double = 0
     @State private var startOffsetY: Double = 0
-    @State private var startZoomScale: Double = 1.0
+
     @State private var nsImage: NSImage?
-    @State private var isCommandPressed = false
-    @State private var commandKeyMonitor: Any?
     
     init(item: ProjectImage, model: AppModel, aspect: CGFloat, zoomToFill: Bool, isHovered: Bool, onHoverChange: @escaping (Bool) -> Void) {
         self.item = item
@@ -51,55 +49,38 @@ struct RepositionOverlayView: View {
                                     isDragging = true
                                     dragStart = value.startLocation
                                     
-                                    // Initialize based on current mode
-                                    if isCommandPressed {
-                                        startZoomScale = item.zoomScale
-                                    } else {
-                                        startOffsetX = item.offsetX
-                                        startOffsetY = item.offsetY
-                                        // Save history for position changes
-                                        NotificationCenter.default.post(
-                                            name: .saveRepositionHistory,
-                                            object: model
-                                        )
-                                    }
+                                    // Initialize drag position
+                                    startOffsetX = item.offsetX
+                                    startOffsetY = item.offsetY
+                                    // Save history for position changes
+                                    NotificationCenter.default.post(
+                                        name: .saveRepositionHistory,
+                                        object: model
+                                    )
                                 }
                                 
-                                // Handle zoom if command is pressed
-                                if isCommandPressed {
-                                    let dragAmount = value.location.y - dragStart.y
-                                    let zoomDelta = Double(dragAmount) / 100.0 // Adjust sensitivity
-                                    let newScale = max(0.5, min(3.0, startZoomScale + zoomDelta))
-                                    
-                                    // Update zoom scale
-                                    if let idx = model.project.images.firstIndex(where: { $0.id == item.id }) {
-                                        model.project.images[idx].zoomScale = newScale
-                                        model.objectWillChange.send()
-                                    }
-                                } else {
-                                    // Handle repositioning
-                                    let deltaX = value.location.x - dragStart.x
-                                    let deltaY = value.location.y - dragStart.y
-                                    
-                                    let maxX = maxHorizontalOffset(for: proxy.size)
-                                    let maxY = maxVerticalOffset(for: proxy.size)
-                                    
-                                    var newOffsetX = item.offsetX
-                                    var newOffsetY = item.offsetY
-                                    
-                                    if maxX > 0 {
-                                        let normalizedDeltaX = Double(deltaX / maxX)
-                                        newOffsetX = max(-1.0, min(1.0, startOffsetX + normalizedDeltaX))
-                                    }
-                                    
-                                    if maxY > 0 {
-                                        let normalizedDeltaY = Double(deltaY / maxY)
-                                        newOffsetY = max(-1.0, min(1.0, startOffsetY + normalizedDeltaY))
-                                    }
-                                    
-                                    // Update position
-                                    model.setCropOffset(for: item.id, offsetX: newOffsetX, offsetY: newOffsetY)
+                                // Handle repositioning
+                                let deltaX = value.location.x - dragStart.x
+                                let deltaY = value.location.y - dragStart.y
+                                
+                                let maxX = maxHorizontalOffset(for: proxy.size)
+                                let maxY = maxVerticalOffset(for: proxy.size)
+                                
+                                var newOffsetX = item.offsetX
+                                var newOffsetY = item.offsetY
+                                
+                                if maxX > 0 {
+                                    let normalizedDeltaX = Double(deltaX / maxX)
+                                    newOffsetX = max(-1.0, min(1.0, startOffsetX + normalizedDeltaX))
                                 }
+                                
+                                if maxY > 0 {
+                                    let normalizedDeltaY = Double(deltaY / maxY)
+                                    newOffsetY = max(-1.0, min(1.0, startOffsetY + normalizedDeltaY))
+                                }
+                                
+                                // Update position
+                                model.setCropOffset(for: item.id, offsetX: newOffsetX, offsetY: newOffsetY)
                             }
                             .onEnded { _ in
                                 isDragging = false
@@ -111,25 +92,14 @@ struct RepositionOverlayView: View {
                     VStack {
                         HStack {
                             Spacer()
-                            if isCommandPressed {
-                                // Zoom mode icon
-                                Image(systemName: "magnifyingglass.circle.fill")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                                    .background(Color.green.opacity(0.8))
-                                    .clipShape(Circle())
-                                    .shadow(radius: 2)
-                            } else {
-                                // Reposition mode icon
-                                Image(systemName: "move.3d")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.8))
-                                    .clipShape(Circle())
-                                    .shadow(radius: 2)
-                            }
+                            // Reposition mode icon
+                            Image(systemName: "move.3d")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.blue.opacity(0.8))
+                                .clipShape(Circle())
+                                .shadow(radius: 2)
                             Spacer()
                         }
                         Spacer()
@@ -143,17 +113,11 @@ struct RepositionOverlayView: View {
                     nsImage = NSImage(contentsOf: item.url)
                 }
                 
-                // Setup command key monitoring
-                commandKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { event in
-                    isCommandPressed = event.modifierFlags.contains(.command)
-                    return event
-                }
+                // No need for command key monitoring here
+                // It's now handled centrally in SelectionsView.Core
             }
             .onDisappear {
-                // Clean up command key monitor
-                if let monitor = commandKeyMonitor {
-                    NSEvent.removeMonitor(monitor)
-                }
+                // Cleanup handled elsewhere
             }
         }
     }

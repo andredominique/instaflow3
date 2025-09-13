@@ -66,8 +66,9 @@ struct SelectionsView: View {
     // We keep this as @State for local view handling, but use the model.project.hasCustomOrder for persistence
     @State var haveCapturedOriginal = false
     
-    // Shift key state and hover tracking for repositioning and zooming
+    // Key states and hover tracking for repositioning and zooming
     @State var isShiftPressed = false
+    @State var isCommandPressed = false
     @State var hoveredItemID: UUID? = nil
     @State var shiftKeyMonitor: Any?
     @State var scrollGestureMonitor: Any?
@@ -245,17 +246,22 @@ struct SelectionsView: View {
         return showDisabled ? sorted : sorted.filter { !$0.disabled }
     }
 
-    // MARK: - Shift Key and Scroll Monitoring
+    // MARK: - Modifier Keys and Scroll Monitoring
     private func setupShiftKeyMonitoring() {
-        // Monitor shift key state
+        // Monitor command and shift key states
         shiftKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) { event in
-            let isShiftCurrentlyPressed = event.modifierFlags.contains(.shift)
+            let flags = event.modifierFlags
+            let wasShiftPressed = isShiftPressed
+            let wasCommandPressed = isCommandPressed
             
-            if isShiftCurrentlyPressed != isShiftPressed {
+            isShiftPressed = flags.contains(.shift)
+            isCommandPressed = flags.contains(.command)
+            
+            // Update hover state when either modifier changes
+            if wasShiftPressed != isShiftPressed || wasCommandPressed != isCommandPressed {
                 DispatchQueue.main.async {
-                    isShiftPressed = isShiftCurrentlyPressed
-                    if !isShiftPressed {
-                        hoveredItemID = nil // Clear hover when shift is released
+                    if !(isShiftPressed || isCommandPressed) {
+                        hoveredItemID = nil // Clear hover when neither key is pressed
                     }
                 }
             }
@@ -265,7 +271,8 @@ struct SelectionsView: View {
         
         // Monitor scroll gestures
         scrollGestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
-            if isShiftPressed && hoveredItemID != nil {
+            // Allow zoom when either shift or command is pressed
+            if (isShiftPressed || isCommandPressed) && hoveredItemID != nil {
                 DispatchQueue.main.async {
                     handleZoomGesture(deltaY: event.deltaY, forImageId: hoveredItemID!)
                 }
