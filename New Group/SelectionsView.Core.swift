@@ -267,8 +267,8 @@ struct SelectionsView: View {
         
         // Monitor scroll gestures
         scrollGestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
-            // Enable zoom if Option is pressed and hovering over a thumbnail
-            if event.modifierFlags.contains(.option) && hoveredItemID != nil {
+            // Enable zoom if ONLY Option is pressed and hovering over a thumbnail
+            if event.modifierFlags == .option && hoveredItemID != nil && !isShiftPressed {
                 DispatchQueue.main.async {
                     handleZoomGesture(deltaY: event.deltaY, forImageId: hoveredItemID!)
                 }
