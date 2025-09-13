@@ -16,6 +16,7 @@ struct RepositionOverlayView: View {
     @State private var startZoomScale: Double = 1.0
     @State private var nsImage: NSImage?
     @State private var isCommandPressed = false
+    @State private var commandKeyMonitor: Any?
     
     private var imageAspect: CGFloat {
         guard let nsImage = nsImage else { return 1.0 }
