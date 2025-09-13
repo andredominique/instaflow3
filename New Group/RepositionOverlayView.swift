@@ -22,6 +22,8 @@ struct RepositionOverlayView: View {
         return nsImage.size.width / nsImage.size.height
     }
     
+    private var commandKeyMonitor: Any?
+    
     var body: some View {
         GeometryReader { proxy in
             ZStack {
@@ -31,13 +33,6 @@ struct RepositionOverlayView: View {
                     .contentShape(Rectangle())
                     .onHover { hovering in
                         onHoverChange(hovering)
-                    }
-                    .onAppear {
-                        // Setup command key monitor
-                        NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { event in
-                            isCommandPressed = event.modifierFlags.contains(.command)
-                            return event
-                        }
                     }
                     .gesture(
                             DragGesture(coordinateSpace: .local)
@@ -140,6 +135,18 @@ struct RepositionOverlayView: View {
         .onAppear {
             if nsImage == nil {
                 nsImage = NSImage(contentsOf: item.url)
+            }
+            
+            // Setup command key monitoring
+            commandKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { event in
+                isCommandPressed = event.modifierFlags.contains(.command)
+                return event
+            }
+        }
+        .onDisappear {
+            // Clean up command key monitor
+            if let monitor = commandKeyMonitor {
+                NSEvent.removeMonitor(monitor)
             }
         }
     }
