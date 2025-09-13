@@ -68,6 +68,7 @@ struct SelectionsView: View {
     
     // Shift key state and hover tracking for repositioning and zooming
     @State var isShiftPressed = false
+    @State var isCommandPressed = false
     @State var hoveredItemID: UUID? = nil
     @State var shiftKeyMonitor: Any?
     @State var scrollGestureMonitor: Any?
@@ -250,16 +251,17 @@ struct SelectionsView: View {
         // Monitor shift key state
         shiftKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) { event in
             let isShiftCurrentlyPressed = event.modifierFlags.contains(.shift)
-            
-            if isShiftCurrentlyPressed != isShiftPressed {
+            let isCommandCurrentlyPressed = event.modifierFlags.contains(.command)
+
+            if isShiftCurrentlyPressed != isShiftPressed || isCommandCurrentlyPressed != isCommandPressed {
                 DispatchQueue.main.async {
                     isShiftPressed = isShiftCurrentlyPressed
+                    isCommandPressed = isCommandCurrentlyPressed
                     if !isShiftPressed {
                         hoveredItemID = nil // Clear hover when shift is released
                     }
                 }
             }
-            
             return event
         }
         

@@ -10,7 +10,7 @@ var thumbnails: some View {
                 spacing: 10
             ) {
                 ForEach(displayItems, id: \.id) { item in
-                    thumbnailItem(item)
+                    thumbnailItem(item, isCommandPressed: isCommandPressed)
                 }
             }
             .padding(12)
