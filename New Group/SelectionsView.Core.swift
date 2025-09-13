@@ -67,14 +67,14 @@ struct SelectionsView: View {
     @State var haveCapturedOriginal = false
     
     // Key state and hover tracking for repositioning and zooming
-    @State private var isShiftPressed = false {
-        didSet { print("Shift state changed to: \(isShiftPressed)") }
+    @State var isShiftPressed = false {
+        didSet { print("DEBUG: Shift state changed to: \(isShiftPressed)") }
     }
-    @State private var isCommandPressed = false {
-        didSet { print("Command state changed to: \(isCommandPressed)") }
+    @State var isCommandPressed = false {
+        didSet { print("DEBUG: Command state changed to: \(isCommandPressed)") }
     }
     @State var hoveredItemID: UUID? = nil {
-        didSet { print("Hover ID changed to: \(String(describing: hoveredItemID))") }
+        didSet { print("DEBUG: Hover ID changed to: \(String(describing: hoveredItemID))") }
     }
     @State var shiftKeyMonitor: Any?
     @State var scrollGestureMonitor: Any?
