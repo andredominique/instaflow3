@@ -1,13 +1,13 @@
 import SwiftUI
 import AppKit
 
-struct RepositionOverlayView: View {
-    let item: ProjectImage
-    let model: AppModel
-    let aspect: CGFloat
-    let zoomToFill: Bool
-    let isHovered: Bool
-    let onHoverChange: (Bool) -> Void
+public struct RepositionOverlayView: View {
+    public let item: ProjectImage
+    public let model: AppModel
+    public let aspect: CGFloat
+    public let zoomToFill: Bool
+    public let isHovered: Bool
+    public let onHoverChange: (Bool) -> Void
     
     @State private var isDragging = false
     @State private var dragStart: CGPoint = .zero
@@ -18,14 +18,21 @@ struct RepositionOverlayView: View {
     @State private var isCommandPressed = false
     @State private var commandKeyMonitor: Any?
     
+    public init(item: ProjectImage, model: AppModel, aspect: CGFloat, zoomToFill: Bool, isHovered: Bool, onHoverChange: @escaping (Bool) -> Void) {
+        self.item = item
+        self.model = model
+        self.aspect = aspect
+        self.zoomToFill = zoomToFill
+        self.isHovered = isHovered
+        self.onHoverChange = onHoverChange
+    }
+    
     private var imageAspect: CGFloat {
         guard let nsImage = nsImage else { return 1.0 }
         return nsImage.size.width / nsImage.size.height
     }
     
-    private var commandKeyMonitor: Any?
-    
-    var body: some View {
+    public var body: some View {
         GeometryReader { proxy in
             ZStack {
                 // Base layer for event handling
@@ -36,8 +43,8 @@ struct RepositionOverlayView: View {
                         onHoverChange(hovering)
                     }
                     .gesture(
-                            DragGesture(coordinateSpace: .local)
-                                .onChanged { value in
+                        DragGesture(coordinateSpace: .local)
+                            .onChanged { value in
                                 guard nsImage != nil else { return }
                                 
                                 if !isDragging {
@@ -97,8 +104,7 @@ struct RepositionOverlayView: View {
                             .onEnded { _ in
                                 isDragging = false
                             }
-                        )
-                }
+                    )
                 
                 // Show appropriate icon based on mode
                 if isHovered {
@@ -132,35 +138,35 @@ struct RepositionOverlayView: View {
                     .allowsHitTesting(false) // Don't interfere with drag gesture
                 }
             }
-        }
-        .onAppear {
-            if nsImage == nil {
-                nsImage = NSImage(contentsOf: item.url)
+            .onAppear {
+                if nsImage == nil {
+                    nsImage = NSImage(contentsOf: item.url)
+                }
+                
+                // Setup command key monitoring
+                commandKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { event in
+                    isCommandPressed = event.modifierFlags.contains(.command)
+                    return event
+                }
             }
-            
-            // Setup command key monitoring
-            commandKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { event in
-                isCommandPressed = event.modifierFlags.contains(.command)
-                return event
-            }
-        }
-        .onDisappear {
-            // Clean up command key monitor
-            if let monitor = commandKeyMonitor {
-                NSEvent.removeMonitor(monitor)
+            .onDisappear {
+                // Clean up command key monitor
+                if let monitor = commandKeyMonitor {
+                    NSEvent.removeMonitor(monitor)
+                }
             }
         }
     }
     
     private func maxHorizontalOffset(for containerSize: CGSize) -> CGFloat {
-        guard zoomToFill && imageAspect > aspect else { return 0 }
-        let imageWidth = containerSize.height * imageAspect
+        guard self.zoomToFill && self.imageAspect > self.aspect else { return 0 }
+        let imageWidth = containerSize.height * self.imageAspect
         return (imageWidth - containerSize.width) / 2
     }
     
     private func maxVerticalOffset(for containerSize: CGSize) -> CGFloat {
-        guard zoomToFill && imageAspect < aspect else { return 0 }
-        let imageHeight = containerSize.width / imageAspect
+        guard self.zoomToFill && self.imageAspect < self.aspect else { return 0 }
+        let imageHeight = containerSize.width / self.imageAspect
         return (imageHeight - containerSize.height) / 2
     }
 }
