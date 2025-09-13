@@ -86,24 +86,26 @@ struct SelectionsView: View {
 
     // Custom gesture recognizer for zoom
     class ZoomGestureRecognizer: NSMagnificationGestureRecognizer {
-        private weak var selectionView: SelectionsView?
+        private var target: SelectionsView
         
         init(target: SelectionsView) {
-            self.selectionView = target
+            self.target = target
             super.init(target: nil, action: nil)
-            self.target = self
-            self.action = #selector(handleGesture(_:))
+            self.addTarget(self, action: #selector(handleGesture(_:)))
+        }
+        
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
         }
         
         @objc private func handleGesture(_ gesture: NSMagnificationGestureRecognizer) {
             // Only check for Command key for zoom
-            guard let selectionView = selectionView,
-                  let hoveredId = selectionView.hoveredItemID,
+            guard let hoveredId = target.hoveredItemID,
                   NSEvent.modifierFlags.contains(.command) else {
                 return
             }
             
-            selectionView.handleZoomGesture(deltaY: CGFloat(gesture.magnification * 10), forImageId: hoveredId)
+            target.handleZoomGesture(deltaY: CGFloat(gesture.magnification * 10), forImageId: hoveredId)
             
             // Reset magnification when gesture ends
             if gesture.state == .ended {
@@ -112,7 +114,7 @@ struct SelectionsView: View {
         }
     }
     
-    private var zoomGesture: ZoomGestureRecognizer?
+    @State private var zoomGesture: ZoomGestureRecognizer?
 
     private var currentAppearance: ColorScheme? {
         switch selectedAppearance {
@@ -310,10 +312,9 @@ struct SelectionsView: View {
         }
         
         // Set up zoom gesture recognizer
-        zoomGesture = ZoomGestureRecognizer(target: self)
-        if let gesture = zoomGesture {
-            NSApplication.shared.windows.first?.contentView?.addGestureRecognizer(gesture)
-        }
+        let gesture = ZoomGestureRecognizer(target: self)
+        NSApplication.shared.windows.first?.contentView?.addGestureRecognizer(gesture)
+        zoomGesture = gesture
     }
     
     private func tearDownShiftKeyMonitoring() {
