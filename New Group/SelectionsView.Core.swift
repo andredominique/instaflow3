@@ -112,6 +112,10 @@ struct SelectionsView: View {
         ZStack(alignment: .bottom) {
             // Main content container WITHOUT the bottom menu bar
             VStack(spacing: 0) {
+                Text("DEBUG TEST v2 - Keys: Shift:\(isShiftPressed ? "YES" : "NO") Command:\(isCommandPressed ? "YES" : "NO")")
+                    .padding()
+                    .background(Color.yellow)
+                    .foregroundColor(.black)
                 header
                 Divider()
                 controls
