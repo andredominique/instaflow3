@@ -3,13 +3,13 @@ import SwiftUI
 import Combine
 
 @MainActor
-public final class AppModel: ObservableObject {
+final class AppModel: ObservableObject {
 
-    @Published public var projects: [Project]
-    @Published public var project: Project
-    @Published public var currentStep: Int
+    @Published var projects: [Project]
+    @Published var project: Project
+    @Published var currentStep: Int
 
-    public init(projects: [Project] = [], project: Project? = nil, currentStep: Int = 1) {
+    init(projects: [Project] = [], project: Project? = nil, currentStep: Int = 1) {
         if let p = project {
             self.project = p
             self.projects = [p]
@@ -24,17 +24,17 @@ public final class AppModel: ObservableObject {
         self.currentStep = currentStep
     }
 
-    public func setOutputPath(_ url: URL?) {
+    func setOutputPath(_ url: URL?) {
         project.outputPath = url
         objectWillChange.send()
     }
 
-    public func saveCaptionTxt(to url: URL) throws {
+    func saveCaptionTxt(to url: URL) throws {
         try project.caption.write(to: url, atomically: true, encoding: .utf8)
     }
 
     // FIXED: Load images from selected folders while preserving existing state
-    public func loadImagesFromSelectedFolders() {
+    func loadImagesFromSelectedFolders() {
         let allowedExt: Set<String> = ["jpg","jpeg","png","heic","heif","tiff","bmp","gif"]
         
         // Create a lookup of existing images by URL for state preservation
@@ -76,13 +76,13 @@ public final class AppModel: ObservableObject {
         objectWillChange.send()
     }
 
-    public func enableImage(_ id: UUID, enabled: Bool) {
+    func enableImage(_ id: UUID, enabled: Bool) {
         if let idx = project.images.firstIndex(where: { $0.id == id }) {
             project.images[idx].disabled = !enabled
         }
     }
 
-    public func moveImage(from: Int, to: Int) {
+    func moveImage(from: Int, to: Int) {
         guard project.images.indices.contains(from),
               project.images.indices.contains(to) else { return }
         var imgs = project.images
@@ -95,7 +95,7 @@ public final class AppModel: ObservableObject {
     }
     
     // Set crop offset for repositioning
-    public func setCropOffset(for id: UUID, offsetX: Double, offsetY: Double) {
+    func setCropOffset(for id: UUID, offsetX: Double, offsetY: Double) {
         if let idx = project.images.firstIndex(where: { $0.id == id }) {
             project.images[idx].offsetX = offsetX
             project.images[idx].offsetY = offsetY
@@ -104,13 +104,13 @@ public final class AppModel: ObservableObject {
     }
     
     // Set aspect ratio and persist it
-    public func setAspectRatio(_ aspect: AspectPreset) {
+    func setAspectRatio(_ aspect: AspectPreset) {
         project.aspect = aspect
         objectWillChange.send()
     }
     
     // NEW: Toggle crop functionality
-    public func setCropEnabled(_ enabled: Bool) {
+    func setCropEnabled(_ enabled: Bool) {
         project.cropEnabled = enabled
         objectWillChange.send()
     }

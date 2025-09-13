@@ -1,13 +1,13 @@
 import SwiftUI
 import AppKit
 
-public struct RepositionOverlayView: View {
-    public let item: ProjectImage
-    public let model: AppModel
-    public let aspect: CGFloat
-    public let zoomToFill: Bool
-    public let isHovered: Bool
-    public let onHoverChange: (Bool) -> Void
+struct RepositionOverlayView: View {
+    let item: ProjectImage
+    let model: AppModel
+    let aspect: CGFloat
+    let zoomToFill: Bool
+    let isHovered: Bool
+    let onHoverChange: (Bool) -> Void
     
     @State private var isDragging = false
     @State private var dragStart: CGPoint = .zero
@@ -18,7 +18,7 @@ public struct RepositionOverlayView: View {
     @State private var isCommandPressed = false
     @State private var commandKeyMonitor: Any?
     
-    public init(item: ProjectImage, model: AppModel, aspect: CGFloat, zoomToFill: Bool, isHovered: Bool, onHoverChange: @escaping (Bool) -> Void) {
+    init(item: ProjectImage, model: AppModel, aspect: CGFloat, zoomToFill: Bool, isHovered: Bool, onHoverChange: @escaping (Bool) -> Void) {
         self.item = item
         self.model = model
         self.aspect = aspect
@@ -32,7 +32,7 @@ public struct RepositionOverlayView: View {
         return nsImage.size.width / nsImage.size.height
     }
     
-    public var body: some View {
+    var body: some View {
         GeometryReader { proxy in
             ZStack {
                 // Base layer for event handling
