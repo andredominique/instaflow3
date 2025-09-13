@@ -23,17 +23,22 @@ struct RepositionOverlayView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                // Base layer for hover detection
+                // Base layer for zoom handling
                 Rectangle()
                     .fill(Color.clear)
                     .contentShape(Rectangle())
                     .onHover { hovering in
                         onHoverChange(hovering)
                     }
-                    // Detect drags but allow other events to pass through
-                    .simultaneousGesture(
-                        DragGesture(coordinateSpace: .local)
-                            .onChanged { value in
+                
+                // Separate overlay for drag handling
+                if zoomToFill {
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(coordinateSpace: .local)
+                                .onChanged { value in
                                 guard zoomToFill, nsImage != nil else { return }
                                 
                                 if !isDragging {
@@ -42,7 +47,8 @@ struct RepositionOverlayView: View {
                                     startOffsetX = item.offsetX
                                     startOffsetY = item.offsetY
                                     
-                                    // Don't need history save here since setCropOffset handles it
+                                    // NEW: Just add this ONE line to save history when drag starts
+                                    model.saveRepositionHistory()
                                 }
                                 
                                 let deltaX = value.location.x - dragStart.x
@@ -64,15 +70,14 @@ struct RepositionOverlayView: View {
                                     newOffsetY = max(-1.0, min(1.0, startOffsetY + normalizedDeltaY))
                                 }
                                 
-                                // Update the model in real-time (history saving is handled in setCropOffset)
+                                // Update the model in real-time
                                 model.setCropOffset(for: item.id, offsetX: newOffsetX, offsetY: newOffsetY)
                             }
                             .onEnded { _ in
                                 isDragging = false
-                                // No need for final history save since setCropOffset handles it
                             }
-                    )
-                    )
+                        )
+                }
                 
                 // Reposition icon - only show when hovering and zoomToFill is enabled
                 if isHovered && zoomToFill {
