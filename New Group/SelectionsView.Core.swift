@@ -67,9 +67,15 @@ struct SelectionsView: View {
     @State var haveCapturedOriginal = false
     
     // Key state and hover tracking for repositioning and zooming
-    @State var isShiftPressed = false
-    @State var isCommandPressed = false
-    @State var hoveredItemID: UUID? = nil
+    @State private var isShiftPressed = false {
+        didSet { print("Shift state changed to: \(isShiftPressed)") }
+    }
+    @State private var isCommandPressed = false {
+        didSet { print("Command state changed to: \(isCommandPressed)") }
+    }
+    @State var hoveredItemID: UUID? = nil {
+        didSet { print("Hover ID changed to: \(String(describing: hoveredItemID))") }
+    }
     @State var shiftKeyMonitor: Any?
     @State var scrollGestureMonitor: Any?
     
@@ -276,8 +282,11 @@ struct SelectionsView: View {
         
         // Monitor scroll gestures
         scrollGestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
-            // Use our tracked state for key checks, which is more reliable than event flags
-            if hoveredItemID != nil && isShiftPressed && isCommandPressed {
+            // Check both tracked state and event flags for robustness
+            let hasEventFlags = event.modifierFlags.contains(.shift) && event.modifierFlags.contains(.command)
+            let hasTrackedState = isShiftPressed && isCommandPressed
+            
+            if hoveredItemID != nil && (hasEventFlags || hasTrackedState) {
                 DispatchQueue.main.async {
                     handleZoomGesture(deltaY: event.deltaY, forImageId: hoveredItemID!)
                 }
