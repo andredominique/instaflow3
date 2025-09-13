@@ -86,12 +86,13 @@ struct SelectionsView: View {
 
     // Custom gesture recognizer for zoom
     class ZoomGestureRecognizer: NSMagnificationGestureRecognizer {
-        private var target: SelectionsView
+        private var selectionView: SelectionsView
         
-        init(target: SelectionsView) {
-            self.target = target
+        init(selectionView: SelectionsView) {
+            self.selectionView = selectionView
             super.init(target: nil, action: nil)
-            self.addTarget(self, action: #selector(handleGesture(_:)))
+            super.target = self
+            super.action = #selector(handleGesture(_:))
         }
         
         required init?(coder: NSCoder) {
@@ -100,12 +101,12 @@ struct SelectionsView: View {
         
         @objc private func handleGesture(_ gesture: NSMagnificationGestureRecognizer) {
             // Only check for Command key for zoom
-            guard let hoveredId = target.hoveredItemID,
+            guard let hoveredId = selectionView.hoveredItemID,
                   NSEvent.modifierFlags.contains(.command) else {
                 return
             }
             
-            target.handleZoomGesture(deltaY: CGFloat(gesture.magnification * 10), forImageId: hoveredId)
+            selectionView.handleZoomGesture(deltaY: CGFloat(gesture.magnification * 10), forImageId: hoveredId)
             
             // Reset magnification when gesture ends
             if gesture.state == .ended {
@@ -312,7 +313,7 @@ struct SelectionsView: View {
         }
         
         // Set up zoom gesture recognizer
-        let gesture = ZoomGestureRecognizer(target: self)
+        let gesture = ZoomGestureRecognizer(selectionView: self)
         NSApplication.shared.windows.first?.contentView?.addGestureRecognizer(gesture)
         zoomGesture = gesture
     }
