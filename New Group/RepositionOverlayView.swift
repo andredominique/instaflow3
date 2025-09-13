@@ -47,8 +47,11 @@ struct RepositionOverlayView: View {
                                     startOffsetX = item.offsetX
                                     startOffsetY = item.offsetY
                                     
-                                    // NEW: Just add this ONE line to save history when drag starts
-                                    model.saveRepositionHistory()
+                                    // Save history when drag starts
+                                    NotificationCenter.default.post(
+                                        name: .saveRepositionHistory,
+                                        object: model
+                                    )
                                 }
                                 
                                 let deltaX = value.location.x - dragStart.x
