@@ -8,6 +8,7 @@ struct PositionedImageView: View {
     let offsetX: Double
     let offsetY: Double
     let zoomToFill: Bool
+    var zoomScale: Double = 1.0
     
     private var imageAspect: CGFloat {
         image.size.width / image.size.height
@@ -16,6 +17,7 @@ struct PositionedImageView: View {
     var body: some View {
         Image(nsImage: image)
             .resizable()
+            .scaleEffect(zoomScale)
             .aspectRatio(contentMode: zoomToFill ? .fill : .fit)
             .frame(width: containerSize.width, height: containerSize.height)
             .offset(

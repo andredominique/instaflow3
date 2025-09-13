@@ -23,22 +23,17 @@ struct RepositionOverlayView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                // Transparent overlay for hover and drag detection
+                // Base layer for hover detection
                 Rectangle()
                     .fill(Color.clear)
                     .contentShape(Rectangle())
                     .onHover { hovering in
                         onHoverChange(hovering)
                     }
-                    // Pass through all non-drag events like scroll
-                    .allowsHitTesting(false)
-                    .overlay(
-                        Rectangle()
-                            .fill(Color.clear)
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(coordinateSpace: .local)
-                                    .onChanged { value in
+                    // Detect drags but allow other events to pass through
+                    .simultaneousGesture(
+                        DragGesture(coordinateSpace: .local)
+                            .onChanged { value in
                                 guard zoomToFill, nsImage != nil else { return }
                                 
                                 if !isDragging {

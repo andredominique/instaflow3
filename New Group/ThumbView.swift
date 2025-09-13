@@ -9,6 +9,7 @@ struct ThumbView: View {
     let zoomToFill: Bool
     let backgroundColor: Color
     let borderWidth: Double
+    let zoomScale: Double
     @State private var nsImage: NSImage?
 
     var body: some View {
@@ -33,7 +34,8 @@ struct ThumbView: View {
                         aspect: aspect,
                         offsetX: offsetX,
                         offsetY: offsetY,
-                        zoomToFill: zoomToFill
+                        zoomToFill: zoomToFill,
+                        zoomScale: zoomScale
                     )
                     .frame(width: contentSize.width, height: contentSize.height)
                     .clipped()

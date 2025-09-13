@@ -24,7 +24,8 @@ extension SelectionsView {
                     offsetY: item.offsetY,
                     zoomToFill: model.project.zoomToFill,
                     backgroundColor: bgColor,
-                    borderWidth: borderPx
+                    borderWidth: borderPx,
+                    zoomScale: item.zoomScale
                 )
                 // Reposition overlay and gesture handling
                 if isShiftPressed {
