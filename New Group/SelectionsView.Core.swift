@@ -68,7 +68,7 @@ struct SelectionsView: View {
     
     // Shift key state and hover tracking for repositioning and zooming
     @State var isShiftPressed = false
-    @State var isCommandPressed = false
+    @State var isOptionPressed = false
     @State var hoveredItemID: UUID? = nil
     @State var shiftKeyMonitor: Any?
     @State var scrollGestureMonitor: Any?
@@ -251,12 +251,12 @@ struct SelectionsView: View {
         // Monitor shift key state
         shiftKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) { event in
             let isShiftCurrentlyPressed = event.modifierFlags.contains(.shift)
-            let isCommandCurrentlyPressed = event.modifierFlags.contains(.command)
+            let isOptionCurrentlyPressed = event.modifierFlags.contains(.option)
 
-            if isShiftCurrentlyPressed != isShiftPressed || isCommandCurrentlyPressed != isCommandPressed {
+            if isShiftCurrentlyPressed != isShiftPressed || isOptionCurrentlyPressed != isOptionPressed {
                 DispatchQueue.main.async {
                     isShiftPressed = isShiftCurrentlyPressed
-                    isCommandPressed = isCommandCurrentlyPressed
+                    isOptionPressed = isOptionCurrentlyPressed
                     if !isShiftPressed {
                         hoveredItemID = nil // Clear hover when shift is released
                     }
@@ -267,8 +267,8 @@ struct SelectionsView: View {
         
         // Monitor scroll gestures
         scrollGestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
-            // Enable zoom if Command is pressed and hovering over a thumbnail
-            if event.modifierFlags.contains(.command) && hoveredItemID != nil {
+            // Enable zoom if Option is pressed and hovering over a thumbnail
+            if event.modifierFlags.contains(.option) && hoveredItemID != nil {
                 DispatchQueue.main.async {
                     handleZoomGesture(deltaY: event.deltaY, forImageId: hoveredItemID!)
                 }
