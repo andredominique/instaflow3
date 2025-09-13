@@ -28,7 +28,7 @@ extension SelectionsView {
                     zoomScale: item.zoomScale
                 )
                 // Reposition overlay and gesture handling
-                if isShiftPressed {
+                if NSEvent.modifierFlags.contains(.command) {
                     RepositionOverlayView(
                         item: item,
                         model: model,
