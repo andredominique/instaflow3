@@ -120,7 +120,13 @@ struct SelectionsView: View {
             }
             
             // Complete replacement of the bottom area with our custom floating bar
-            bottomMenuBar
+            VStack {
+                // DEBUG: Show key states
+                Text("DEBUG v1: Shift:\(isShiftPressed ? "✓" : "×") Cmd:\(isCommandPressed ? "✓" : "×")")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                bottomMenuBar
+            }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 10)
                 .zIndex(100) // Ensure it's above everything else
