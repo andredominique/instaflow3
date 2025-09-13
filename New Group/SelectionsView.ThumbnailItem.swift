@@ -27,8 +27,8 @@ extension SelectionsView {
                     borderWidth: borderPx,
                     zoomScale: item.zoomScale
                 )
-                // Reposition overlay and gesture handling
-                if isShiftPressed {
+                // Reposition overlay and gesture handling (only when Shift is pressed without Command)
+                if isShiftPressed && !isCommandPressed {
                     RepositionOverlayView(
                         item: item,
                         model: model,
