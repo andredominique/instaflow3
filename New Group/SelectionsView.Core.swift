@@ -282,11 +282,10 @@ struct SelectionsView: View {
         
         // Monitor scroll gestures
         scrollGestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
-            // Check both tracked state and event flags for robustness
-            let hasEventFlags = event.modifierFlags.contains(.shift) && event.modifierFlags.contains(.command)
-            let hasTrackedState = isShiftPressed && isCommandPressed
+            let modifiers = event.modifierFlags
             
-            if hoveredItemID != nil && (hasEventFlags || hasTrackedState) {
+            // Check for both Shift and Command for zoom
+            if modifiers.contains(.shift) && modifiers.contains(.command) && hoveredItemID != nil {
                 DispatchQueue.main.async {
                     handleZoomGesture(deltaY: event.deltaY, forImageId: hoveredItemID!)
                 }

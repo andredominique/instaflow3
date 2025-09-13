@@ -3,7 +3,7 @@
 //
 import SwiftUI
 extension SelectionsView {
-@ViewBuilder func thumbnailItem(_ item: ProjectImage, isCommandPressed: Bool, isShiftPressed: Bool) -> some View {
+@ViewBuilder func thumbnailItem(_ item: ProjectImage) -> some View {
     let isReelAspect = model.project.aspect == .story9x16
     let bgColor = isReelAspect ? model.project.reelBorderColor.swiftUIColor : model.project.carouselBorderColor.swiftUIColor
     let borderPx = isReelAspect ? Double(model.project.reelBorderPx) : Double(model.project.carouselBorderPx)
@@ -27,8 +27,9 @@ extension SelectionsView {
                     borderWidth: borderPx,
                     zoomScale: item.zoomScale
                 )
-                // Reposition overlay and gesture handling (only when Shift is pressed without Command)
-                if isShiftPressed && !isCommandPressed {
+                // Show reposition overlay only when shift is pressed alone
+                let currentFlags = NSEvent.modifierFlags
+                if currentFlags.contains(.shift) && !currentFlags.contains(.command) {
                     RepositionOverlayView(
                         item: item,
                         model: model,
