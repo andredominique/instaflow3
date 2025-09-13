@@ -84,6 +84,19 @@ struct SelectionsView: View {
     private let maxZoomScale: Double = 3.0   // 300% of original size
     private let zoomStep: Double = 0.1      // 10% per scroll unit
 
+    // Custom gesture recognizer for zoom
+    class MagnificationGesture: NSGestureRecognizer {
+        var onMagnify: ((CGFloat) -> Void)?
+        
+        override func magnify(with event: NSEvent) {
+            if let onMagnify = onMagnify {
+                onMagnify(event.magnification)
+            }
+        }
+    }
+    
+    private var magnificationGesture: MagnificationGesture?
+
     private var currentAppearance: ColorScheme? {
         switch selectedAppearance {
         case "light": return .light
@@ -262,36 +275,37 @@ struct SelectionsView: View {
         return showDisabled ? sorted : sorted.filter { !$0.disabled }
     }
 
-    // MARK: - Shift Key and Scroll Monitoring
+    // MARK: - Shift Key and Gesture Monitoring
     private func setupShiftKeyMonitoring() {
-        // Monitor modifier key states
+        // Monitor shift key state
         shiftKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) { event in
             let isShiftCurrentlyPressed = event.modifierFlags.contains(.shift)
-            let isCommandCurrentlyPressed = event.modifierFlags.contains(.command)
             
-            // Update state if either key changed
-            if isShiftCurrentlyPressed != isShiftPressed || isCommandCurrentlyPressed != isCommandPressed {
+            if isShiftCurrentlyPressed != isShiftPressed {
                 DispatchQueue.main.async {
                     isShiftPressed = isShiftCurrentlyPressed
-                    isCommandPressed = isCommandCurrentlyPressed
+                    if !isShiftPressed {
+                        hoveredItemID = nil
+                    }
                 }
             }
-
             return event
         }
         
-        // Monitor scroll gestures
-        scrollGestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
-            let modifiers = event.modifierFlags
-            
-            // Check for both Shift and Command for zoom
-            if modifiers.contains(.shift) && modifiers.contains(.command) && hoveredItemID != nil {
-                DispatchQueue.main.async {
-                    handleZoomGesture(deltaY: event.deltaY, forImageId: hoveredItemID!)
-                }
-                return nil // Consume the event when we're zooming
+        // Set up magnification gesture for zooming
+        magnificationGesture = MagnificationGesture()
+        magnificationGesture?.onMagnify = { [weak self] magnitude in
+            guard let self = self,
+                  let hoveredId = self.hoveredItemID,
+                  NSEvent.modifierFlags.contains(.shift) && NSEvent.modifierFlags.contains(.command) else {
+                return
             }
-            return event // Pass through all other scroll events
+            
+            self.handleZoomGesture(deltaY: Float(magnitude * 10), forImageId: hoveredId)
+        }
+        
+        if let gesture = magnificationGesture {
+            NSApplication.shared.windows.first?.contentView?.addGestureRecognizer(gesture)
         }
     }
     
@@ -300,9 +314,10 @@ struct SelectionsView: View {
             NSEvent.removeMonitor(monitor)
             shiftKeyMonitor = nil
         }
-        if let monitor = scrollGestureMonitor {
-            NSEvent.removeMonitor(monitor)
-            scrollGestureMonitor = nil
+        
+        if let gesture = magnificationGesture {
+            NSApplication.shared.windows.first?.contentView?.removeGestureRecognizer(gesture)
+            magnificationGesture = nil
         }
     }
     
