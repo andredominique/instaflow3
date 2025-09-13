@@ -99,7 +99,7 @@
 		48A68A6B2E5F71FA007A0509 /* PositionedImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionedImageView.swift; sourceTree = "<group>"; };
 		48A68A6C2E5F71FA007A0509 /* ProjectSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectSnapshot.swift; sourceTree = "<group>"; };
 		48A68A6D2E5F71FA007A0509 /* RepositionDraggableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositionDraggableView.swift; sourceTree = "<group>"; };
-		48A68A6E2E5F71FA007A0509 /* RepositionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositionOverlayView.swift; sourceTree = "<group>"; };
+		48A68A6E2E5F71FA007A0509 /* RepositionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RepositionOverlayView.swift; path = RepositionOverlayView.swift; sourceTree = SOURCE_ROOT; };
 		48A68A702E5F71FA007A0509 /* SelectionsView.BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionsView.BottomBar.swift; sourceTree = "<group>"; };
 		48A68A712E5F71FA007A0509 /* SelectionsView.Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionsView.Controls.swift; sourceTree = "<group>"; };
 		48A68A722E5F71FA007A0509 /* SelectionsView.Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionsView.Core.swift; sourceTree = "<group>"; };
@@ -163,6 +163,7 @@
 				4887BFEE2E466358000BE4AC /* OpenAIService.swift */,
 				4887C0062E46644A000BE4AC /* OptionsCaptionsView.swift */,
 				4887C0432E47B5DC000BE4AC /* PromptStore.swift */,
+				48A68A6E2E5F71FA007A0509 /* RepositionOverlayView.swift */,
 				488DEBB32E48E6E600D2C2E2 /* RightPreviewPane.swift */,
 				4887BFF12E466358000BE4AC /* RootView.swift */,
 				4887BFF22E466358000BE4AC /* SettingsView.swift */,
@@ -183,7 +184,6 @@
 				48A68A6B2E5F71FA007A0509 /* PositionedImageView.swift */,
 				48A68A6C2E5F71FA007A0509 /* ProjectSnapshot.swift */,
 				48A68A6D2E5F71FA007A0509 /* RepositionDraggableView.swift */,
-				48A68A6E2E5F71FA007A0509 /* RepositionOverlayView.swift */,
 				48A68A702E5F71FA007A0509 /* SelectionsView.BottomBar.swift */,
 				48A68A712E5F71FA007A0509 /* SelectionsView.Controls.swift */,
 				48A68A722E5F71FA007A0509 /* SelectionsView.Core.swift */,
